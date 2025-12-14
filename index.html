@@ -1,0 +1,905 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Arsip Biro Kepesantrenan</title>
+    
+    <!-- React & ReactDOM -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    
+    <!-- Babel -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Tailwind Config -->
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#10b981', 
+                        slate: { 850: '#1e293b' }
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        .dark ::-webkit-scrollbar-thumb { background: #475569; }
+        .glass-effect {
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(10px);
+        }
+        /* Animation Classes */
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+        .animate-fade-in { animation: fadeIn 0.3s ease-out forwards; }
+        .animate-slide-up { animation: slideUp 0.4s ease-out forwards; }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 transition-colors duration-300 font-sans">
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useMemo } = React;
+
+        // --- ICONS (Lucide React equivalent) ---
+        const Icons = {
+            LayoutDashboard: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="7" height="9" x="3" y="3" rx="1"/><rect width="7" height="5" x="14" y="3" rx="1"/><rect width="7" height="9" x="14" y="12" rx="1"/><rect width="7" height="5" x="3" y="16" rx="1"/></svg>,
+            FileText: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M10 9H8"/><path d="M16 13H8"/><path d="M16 17H8"/></svg>,
+            FolderOpen: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m6 14 1.45-2.9A2 2 0 0 1 9.24 10H20a2 2 0 0 1 1.94 2.5l-1.55 6a2 2 0 0 1-1.94 1.5H4a2 2 0 0 1-2-2V5c0-1.1.9-2 2-2h3.93a2 2 0 0 1 1.66.9l.82 1.2a2 2 0 0 0 1.66.9H18a2 2 0 0 1 2 2v2"/></svg>,
+            Users: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>,
+            Settings: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.09a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>,
+            Search: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>,
+            Menu: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="4" x2="20" y1="12" y2="12"/><line x1="4" x2="20" y1="6" y2="6"/><line x1="4" x2="20" y1="18" y2="18"/></svg>,
+            Upload: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" x2="12" y1="3" y2="15"/></svg>,
+            Trash2: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" x2="10" y1="11" y2="17"/><line x1="14" x2="14" y1="11" y2="17"/></svg>,
+            Edit: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/><path d="m15 5 4 4"/></svg>,
+            Download: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>,
+            Eye: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>,
+            LogOut: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" x2="9" y1="12" y2="12"/></svg>,
+            Moon: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>,
+            Sun: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/></svg>,
+            Building2: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18Z"/><path d="M6 12H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2"/><path d="M18 9h2a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-2"/><path d="M10 6h4"/><path d="M10 10h4"/><path d="M10 14h4"/><path d="M10 18h4"/></svg>,
+            FileCheck: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="m9 15 2 2 4-4"/></svg>,
+            ShieldCheck: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="m9 12 2 2 4-4"/></svg>,
+            ChevronRight: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m9 18 6-6-6-6"/></svg>,
+            ChevronLeft: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6"/></svg>,
+            List: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="8" x2="21" y1="6" y2="6"/><line x1="8" x2="21" y1="12" y2="12"/><line x1="8" x2="21" y1="18" y2="18"/><line x1="3" x2="3.01" y1="6" y2="6"/><line x1="3" x2="3.01" y1="12" y2="12"/><line x1="3" x2="3.01" y1="18" y2="18"/></svg>,
+            Grid: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="7" height="7" x="3" y="3" rx="1"/><rect width="7" height="7" x="14" y="3" rx="1"/><rect width="7" height="7" x="14" y="14" rx="1"/><rect width="7" height="7" x="3" y="14" rx="1"/></svg>,
+            Filter: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>,
+            X: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18"/><path d="m6 6 18 18"/></svg>,
+            LinkIcon: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>,
+            Globe: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/><path d="M2 12h20"/></svg>
+        };
+
+        // --- COMPONENTS ---
+
+        function App() {
+            // UI State
+            // UPDATE: Inisialisasi awal ke 'public' agar user yang belum login langsung melihat Arsip Publik
+            const [activeMenu, setActiveMenu] = useState('public');
+            const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+            const [isDarkMode, setIsDarkMode] = useState(false);
+            const [isLoggedIn, setIsLoggedIn] = useState(false);
+            const [isLoading, setIsLoading] = useState(true);
+            
+            // Modal States
+            const [showUploadModal, setShowUploadModal] = useState(false);
+            const [showPreviewModal, setShowPreviewModal] = useState(false);
+            const [previewItem, setPreviewItem] = useState(null);
+
+            // Filter & View State
+            const [viewMode, setViewMode] = useState('card');
+            const [searchTerm, setSearchTerm] = useState('');
+            const [filterType, setFilterType] = useState('Semua');
+            const [filterStatus, setFilterStatus] = useState('Semua');
+            const [filterUnit, setFilterUnit] = useState('Semua'); // Restore Filter Unit
+
+            // Data States
+            const [archives, setArchives] = useState([]);
+            const [types, setTypes] = useState([]);
+            const [units, setUnits] = useState([]);
+            const [appUsers, setAppUsers] = useState([]);
+
+            // --- LOAD DUMMY DATA ---
+            useEffect(() => {
+                const timer = setTimeout(() => {
+                    setArchives([
+                        { id: 1, name: "SK Pengangkatan Pengurus 2024", typeName: "Peraturan Kepala", unitName: "SDM & Personalia", status: "Public", date: "02/01/2024", filename: "sk_pengurus.pdf", fileType: "file" },
+                        { id: 2, name: "SOP Perizinan Pulang Santri", typeName: "SOP", unitName: "Kesantrian", status: "Public", date: "15/02/2024", filename: "sop_izin.pdf", fileType: "file" },
+                        { id: 3, name: "Laporan Keuangan Semester Ganjil", typeName: "Laporan", unitName: "Bendahara", status: "Private", date: "20/06/2024", filename: "lap_keuangan.xlsx", fileType: "file" },
+                        { id: 4, name: "Data Kesehatan Santri Baru", typeName: "Data", unitName: "Kesehatan", status: "Private", date: "10/07/2024", filename: "data_kesehatan.xlsx", fileType: "file" },
+                        { id: 5, name: "Jadwal Imam Masjid Q1", typeName: "Jadwal", unitName: "Ibadah", status: "Public", date: "01/01/2025", filename: "jadwal_imam.pdf", fileType: "file" },
+                        { id: 6, name: "Pedoman Kebersihan Asrama", typeName: "Pedoman", unitName: "Kebersihan", status: "Public", date: "05/01/2025", filename: "pedoman_bersih.pdf", fileType: "file" },
+                        { id: 7, name: "Link Drive Materi Kajian", typeName: "Data", unitName: "Ibadah", status: "Public", date: "01/03/2025", filename: "https://drive.google.com/materi", fileType: "link" },
+                        { id: 8, name: "RAB Pembangunan Gedung C", typeName: "Laporan", unitName: "Sarpras", status: "Private", date: "12/03/2025", filename: "rab_gedung.xlsx", fileType: "file" },
+                    ]);
+                    
+                    setTypes([
+                        { id: 1, name: "Peraturan Kepala" }, 
+                        { id: 2, name: "SOP" }, 
+                        { id: 3, name: "Surat Edaran" }, 
+                        { id: 4, name: "Laporan" },
+                        { id: 5, name: "Pedoman" },
+                        { id: 6, name: "Jadwal" },
+                        { id: 7, name: "Data" }
+                    ]);
+
+                    setUnits([
+                        { id: 1, name: "Kesantrian" }, 
+                        { id: 2, name: "Bendahara" }, 
+                        { id: 3, name: "Sekretariat" }, 
+                        { id: 4, name: "Kesehatan" }, 
+                        { id: 5, name: "Ibadah" }, 
+                        { id: 6, name: "Kebersihan" },
+                        { id: 7, name: "Sarpras" },
+                        { id: 8, name: "SDM & Personalia" }
+                    ]);
+
+                    setAppUsers([
+                        { id: 1, name: "Admin Utama", email: "admin@pesantren.id", role: "Admin" },
+                        { id: 2, name: "Staf TU", email: "tu@pesantren.id", role: "Operator" },
+                        { id: 3, name: "Kepala Biro", email: "kabiro@pesantren.id", role: "Viewer" }
+                    ]);
+
+                    setIsLoading(false);
+                }, 800);
+                return () => clearTimeout(timer);
+            }, []);
+
+            useEffect(() => {
+                if (isDarkMode) document.documentElement.classList.add('dark');
+                else document.documentElement.classList.remove('dark');
+            }, [isDarkMode]);
+
+            // Reset filters when menu changes
+            useEffect(() => {
+                setSearchTerm('');
+                setFilterType('Semua');
+                setFilterStatus('Semua');
+                setFilterUnit('Semua');
+            }, [activeMenu]);
+
+            const handleLogin = (u, p) => {
+                if (u === 'admin' && p === 'admin') {
+                    setIsLoggedIn(true);
+                    setActiveMenu('dashboard');
+                } else {
+                    alert('Gunakan Username: admin, Password: admin');
+                }
+            };
+
+            // Handle Upload
+            const handleUpload = (newArchive) => {
+                setArchives([newArchive, ...archives]);
+                setShowUploadModal(false);
+            };
+
+            // Handle View/Preview
+            const handlePreview = (item) => {
+                setPreviewItem(item);
+                setShowPreviewModal(true);
+            };
+
+            // Filter Logic
+            const filteredArchives = useMemo(() => {
+                return archives.filter(item => {
+                    if (activeMenu === 'public' && item.status !== 'Public') return false;
+                    const matchesSearch = item.name.toLowerCase().includes(searchTerm.toLowerCase());
+                    const matchesType = filterType === 'Semua' || item.typeName === filterType;
+                    const matchesStatus = filterStatus === 'Semua' || item.status === filterStatus;
+                    const matchesUnit = filterUnit === 'Semua' || item.unitName === filterUnit; // Logic Filter Unit
+                    return matchesSearch && matchesType && matchesStatus && matchesUnit;
+                });
+            }, [archives, activeMenu, searchTerm, filterType, filterStatus, filterUnit]);
+
+            const stats = useMemo(() => ({
+                totalArsip: archives.length,
+                totalJenis: types.length,
+                totalUnit: units.length,
+                recent: archives.slice(0, 5),
+                publicCount: archives.filter(a => a.status === 'Public').length
+            }), [archives, types, units]);
+
+            if (isLoading) {
+                return (
+                    <div className="h-screen flex items-center justify-center bg-slate-50 dark:bg-slate-900">
+                        <div className="text-center animate-pulse">
+                            <Icons.FolderOpen className="mx-auto text-blue-600 mb-2 w-12 h-12" />
+                            <p className="text-slate-500 dark:text-slate-400">Memuat Sistem Arsip...</p>
+                        </div>
+                    </div>
+                );
+            }
+
+            // --- RENDER HELPERS ---
+            const SidebarItem = ({ id, icon: IconName, label }) => {
+                const Icon = Icons[IconName];
+                const active = activeMenu === id;
+                return (
+                    <button
+                        onClick={() => setActiveMenu(id)}
+                        className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg transition-all duration-200 group ${
+                            active
+                            ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/30'
+                            : 'text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
+                        }`}
+                    >
+                        <Icon width={20} className={active ? 'text-white' : 'text-slate-400 group-hover:text-slate-600 dark:group-hover:text-slate-300'} />
+                        {isSidebarOpen && <span className="font-medium animate-fade-in">{label}</span>}
+                    </button>
+                );
+            };
+
+            return (
+                <div className={`flex h-screen overflow-hidden ${isDarkMode ? 'dark bg-slate-900' : 'bg-slate-50'}`}>
+                    
+                    {/* --- UPLOAD MODAL --- */}
+                    {showUploadModal && (
+                        <UploadModal 
+                            types={types} 
+                            units={units} 
+                            onClose={() => setShowUploadModal(false)} 
+                            onSave={handleUpload}
+                        />
+                    )}
+
+                    {/* --- PREVIEW MODAL --- */}
+                    {showPreviewModal && previewItem && (
+                        <PreviewModal 
+                            item={previewItem} 
+                            onClose={() => { setShowPreviewModal(false); setPreviewItem(null); }}
+                        />
+                    )}
+
+                    {/* SIDEBAR */}
+                    <aside className={`${isSidebarOpen ? 'w-64' : 'w-20'} bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 flex flex-col transition-all duration-300 z-20 md:flex hidden shadow-xl`}>
+                        <div className="p-6 flex items-center justify-between">
+                            <div className="flex items-center space-x-3 overflow-hidden">
+                                <div className="bg-blue-600 p-2 rounded-lg text-white shrink-0"><Icons.FolderOpen width={24} /></div>
+                                {isSidebarOpen && (
+                                    <div className="whitespace-nowrap animate-fade-in">
+                                        <h1 className="font-bold text-slate-800 dark:text-white leading-tight">E-Arsip</h1>
+                                        <p className="text-xs text-slate-500">Biro Kepesantrenan</p>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+
+                        {/* DESKTOP COLLAPSE BUTTON */}
+                        <div className="px-4 mb-2">
+                             <button 
+                                onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+                                className="w-full py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg text-slate-500 flex items-center justify-center transition"
+                                title={isSidebarOpen ? "Tutup Sidebar" : "Buka Sidebar"}
+                            >
+                                {isSidebarOpen ? <Icons.ChevronLeft width={16}/> : <Icons.ChevronRight width={16}/>}
+                            </button>
+                        </div>
+
+                        <nav className="flex-1 px-4 space-y-1 overflow-y-auto py-2">
+                            {isLoggedIn ? (
+                                <>
+                                    {isSidebarOpen && <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2 mt-2 pl-4">Menu Utama</div>}
+                                    <SidebarItem id="dashboard" icon="LayoutDashboard" label="Dashboard" />
+                                    <SidebarItem id="archives" icon="FileText" label="Data Arsip" />
+                                    <SidebarItem id="types" icon="FileCheck" label="Jenis Arsip" />
+                                    <SidebarItem id="units" icon="Building2" label="Data Unit" />
+                                    
+                                    <div className="my-4 border-t border-slate-100 dark:border-slate-800"></div>
+                                    
+                                    {isSidebarOpen && <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2 pl-4">Akses Publik</div>}
+                                    <SidebarItem id="public" icon="Search" label="Arsip Publik" />
+                                    
+                                    <div className="my-4 border-t border-slate-100 dark:border-slate-800"></div>
+
+                                    {isSidebarOpen && <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2 pl-4">Sistem</div>}
+                                    <SidebarItem id="users" icon="Users" label="Manajemen User" />
+                                    <SidebarItem id="settings" icon="Settings" label="Pengaturan" />
+                                </>
+                            ) : (
+                                <>
+                                    <SidebarItem id="public" icon="Search" label="Arsip Publik" />
+                                    <SidebarItem id="login" icon="ShieldCheck" label="Login Admin" />
+                                </>
+                            )}
+                        </nav>
+                        
+                        <div className="p-4 border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50">
+                             <button onClick={() => setIsDarkMode(!isDarkMode)} className="flex items-center justify-center w-full p-2 mb-3 rounded-lg bg-white dark:bg-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-600 transition border border-slate-200 dark:border-slate-600">
+                                {isDarkMode ? <Icons.Sun width={16} /> : <Icons.Moon width={16} />}
+                                {isSidebarOpen && <span className="ml-2 text-xs font-semibold">Mode {isDarkMode ? 'Terang' : 'Gelap'}</span>}
+                            </button>
+                            {isLoggedIn && isSidebarOpen && (
+                                <div className="flex items-center space-x-3 animate-fade-in">
+                                    <div className="w-9 h-9 rounded-full bg-gradient-to-tr from-blue-500 to-purple-500 text-white flex items-center justify-center font-bold shadow-lg">A</div>
+                                    <div className="flex-1 overflow-hidden">
+                                        <p className="text-sm font-bold text-slate-700 dark:text-slate-200">Administrator</p>
+                                        <p className="text-xs text-green-500 flex items-center">● Online</p>
+                                    </div>
+                                    <button onClick={() => { setIsLoggedIn(false); setActiveMenu('public'); }} className="text-slate-400 hover:text-red-500 transition"><Icons.LogOut width={18} /></button>
+                                </div>
+                            )}
+                        </div>
+                    </aside>
+
+                    {/* MAIN CONTENT AREA */}
+                    <main className="flex-1 flex flex-col h-screen overflow-hidden relative bg-slate-50 dark:bg-slate-900">
+                         {/* Header */}
+                         <header className="h-16 bg-white/80 dark:bg-slate-900/80 backdrop-blur border-b border-slate-200 dark:border-slate-800 flex items-center justify-between px-6 sticky top-0 z-10">
+                            <div className="flex items-center">
+                                <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} className="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 mr-4 md:hidden block">
+                                    <Icons.Menu width={20} />
+                                </button>
+                                <h2 className="text-lg font-bold text-slate-800 dark:text-white capitalize flex items-center">
+                                    <span className="text-slate-400 mr-2 font-light">/</span> 
+                                    {activeMenu.replace('_', ' ')}
+                                </h2>
+                            </div>
+                            <div className="flex items-center space-x-4">
+                                <div className="text-xs text-slate-500 hidden md:block">Senin, 15 Desember 2025</div>
+                            </div>
+                        </header>
+
+                        {/* CONTENT SCROLLABLE */}
+                        <div className="flex-1 overflow-y-auto p-6 md:p-8">
+                            
+                            {/* LOGIN VIEW */}
+                            {activeMenu === 'login' && !isLoggedIn && (
+                                <div className="flex flex-col items-center justify-center h-full max-w-md mx-auto -mt-16">
+                                    <div className="text-center mb-8">
+                                        <div className="inline-block p-4 bg-blue-100 dark:bg-blue-900/30 rounded-2xl text-blue-600 mb-4">
+                                            <Icons.ShieldCheck width={48} height={48} />
+                                        </div>
+                                        <h2 className="text-3xl font-bold text-slate-800 dark:text-white">Admin Login</h2>
+                                        <p className="text-slate-500 mt-2">Masuk untuk mengelola arsip pesantren</p>
+                                    </div>
+                                    <div className="bg-white dark:bg-slate-800 p-8 rounded-2xl shadow-xl w-full border border-slate-200 dark:border-slate-700">
+                                        <form onSubmit={(e) => {e.preventDefault(); handleLogin(e.target.u.value, e.target.p.value)}}>
+                                            <div className="space-y-5">
+                                                <div>
+                                                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Username</label>
+                                                    <input name="u" className="w-full px-4 py-3 rounded-xl border border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none transition" placeholder="admin" />
+                                                </div>
+                                                <div>
+                                                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Password</label>
+                                                    <input name="p" type="password" className="w-full px-4 py-3 rounded-xl border border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none transition" placeholder="admin" />
+                                                </div>
+                                                <button className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow-lg shadow-blue-500/30 transition transform hover:-translate-y-1">Masuk Dashboard</button>
+                                            </div>
+                                        </form>
+                                        <div className="mt-6 text-center text-sm text-slate-400">
+                                            Lupa password? Hubungi Tim IT.
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* DASHBOARD VIEW */}
+                            {activeMenu === 'dashboard' && isLoggedIn && (
+                                <div className="space-y-8 animate-fade-in-up">
+                                    {/* Stats Grid */}
+                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                                        <StatCard title="Total Arsip" value={stats.totalArsip} icon="FileText" color="blue" />
+                                        <StatCard title="Arsip Publik" value={stats.publicCount} icon="Users" color="green" />
+                                        <StatCard title="Jenis Dokumen" value={stats.totalJenis} icon="FileCheck" color="purple" />
+                                        <StatCard title="Unit Kerja" value={stats.totalUnit} icon="Building2" color="orange" />
+                                    </div>
+
+                                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                                        {/* Recent Table */}
+                                        <div className="lg:col-span-2 bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden">
+                                            <div className="px-6 py-5 border-b border-slate-200 dark:border-slate-700 flex justify-between items-center">
+                                                <h3 className="font-bold text-slate-800 dark:text-white text-lg">Arsip Terbaru</h3>
+                                                <button onClick={() => setActiveMenu('archives')} className="text-sm text-blue-600 font-medium hover:underline flex items-center">
+                                                    Lihat Semua <Icons.ChevronRight width={16} />
+                                                </button>
+                                            </div>
+                                            <div className="overflow-x-auto">
+                                                <table className="w-full text-sm text-left">
+                                                    <thead className="bg-slate-50 dark:bg-slate-900/50 text-slate-500 dark:text-slate-400 uppercase text-xs tracking-wider">
+                                                        <tr>
+                                                            <th className="px-6 py-4">Nama Dokumen</th>
+                                                            <th className="px-6 py-4">Unit</th>
+                                                            <th className="px-6 py-4">Status</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody className="divide-y divide-slate-100 dark:divide-slate-700">
+                                                        {stats.recent.map((item) => (
+                                                            <tr key={item.id} className="hover:bg-slate-50 dark:hover:bg-slate-700/30 transition">
+                                                                <td className="px-6 py-4">
+                                                                    <div className="font-medium text-slate-800 dark:text-slate-200 flex items-center gap-2">
+                                                                        {item.fileType === 'link' ? <Icons.LinkIcon width={14} className="text-blue-500" /> : <Icons.FileText width={14} className="text-slate-400" />}
+                                                                        {item.name}
+                                                                    </div>
+                                                                    <div className="text-xs text-slate-500">{item.date}</div>
+                                                                </td>
+                                                                <td className="px-6 py-4 text-slate-600 dark:text-slate-400">{item.unitName}</td>
+                                                                <td className="px-6 py-4">
+                                                                    <span className={`px-2.5 py-1 text-xs font-semibold rounded-full border ${
+                                                                        item.status === 'Public' 
+                                                                        ? 'bg-green-50 text-green-600 border-green-200 dark:bg-green-900/20 dark:border-green-800' 
+                                                                        : 'bg-slate-50 text-slate-600 border-slate-200 dark:bg-slate-800 dark:border-slate-600 dark:text-slate-400'
+                                                                    }`}>
+                                                                        {item.status}
+                                                                    </span>
+                                                                </td>
+                                                            </tr>
+                                                        ))}
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                        </div>
+
+                                        {/* Quick Actions / Info */}
+                                        <div className="space-y-6">
+                                            <div className="bg-gradient-to-br from-blue-600 to-indigo-700 rounded-2xl p-6 text-white shadow-lg">
+                                                <h3 className="text-lg font-bold mb-2">Upload Arsip Baru</h3>
+                                                <p className="text-blue-100 text-sm mb-4">Simpan dokumen penting Biro Kepesantrenan dengan aman dan terstruktur.</p>
+                                                <button onClick={() => { setActiveMenu('archives'); setShowUploadModal(true); }} className="w-full py-2 bg-white text-blue-600 rounded-lg font-bold text-sm hover:bg-blue-50 transition shadow-sm">
+                                                    Ke Menu Upload
+                                                </button>
+                                            </div>
+                                            
+                                            <div className="bg-white dark:bg-slate-800 rounded-2xl p-6 border border-slate-200 dark:border-slate-700 shadow-sm">
+                                                <h3 className="font-bold text-slate-800 dark:text-white mb-4">Statistik Jenis</h3>
+                                                <div className="space-y-3">
+                                                    {types.slice(0, 4).map((t, idx) => (
+                                                        <div key={idx} className="flex justify-between items-center text-sm">
+                                                            <span className="text-slate-600 dark:text-slate-400">{t.name}</span>
+                                                            <span className="font-semibold text-slate-800 dark:text-white bg-slate-100 dark:bg-slate-700 px-2 py-0.5 rounded text-xs">
+                                                                {archives.filter(a => a.typeName === t.name).length}
+                                                            </span>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+
+                             {/* ARSIP MANAGER & PUBLIC VIEW */}
+                             {(activeMenu === 'archives' || activeMenu === 'public') && (
+                                 <div className="space-y-6 animate-fade-in">
+                                     <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                                        <div>
+                                            <h2 className="text-2xl font-bold text-slate-800 dark:text-white">{activeMenu === 'public' ? 'Arsip Publik' : 'Manajemen Arsip'}</h2>
+                                            <p className="text-slate-500 text-sm">{activeMenu === 'public' ? 'Dokumen yang dapat diakses oleh umum' : 'Kelola seluruh dokumen internal dan eksternal'}</p>
+                                        </div>
+                                        {activeMenu === 'archives' && (
+                                            <button onClick={() => setShowUploadModal(true)} className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-xl font-medium shadow-lg shadow-blue-500/30 flex items-center transition transform hover:-translate-y-0.5">
+                                                <Icons.Upload width={18} className="mr-2"/> Upload Baru
+                                            </button>
+                                        )}
+                                     </div>
+
+                                     {/* TOOLBAR: Search + Filter + View Toggle */}
+                                     <div className="bg-white dark:bg-slate-800 p-4 rounded-xl border border-slate-200 dark:border-slate-700 flex flex-col md:flex-row gap-4">
+                                         {/* Search */}
+                                         <div className="flex-1 relative">
+                                             <Icons.Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" width={18} />
+                                             <input 
+                                                type="text" 
+                                                value={searchTerm}
+                                                onChange={(e) => setSearchTerm(e.target.value)}
+                                                placeholder="Cari dokumen..." 
+                                                className="w-full pl-10 pr-4 py-2 rounded-lg bg-slate-50 dark:bg-slate-900 border-none outline-none text-slate-700 dark:text-white" 
+                                             />
+                                         </div>
+
+                                         {/* Filters */}
+                                         <div className="flex gap-2 overflow-x-auto pb-2 md:pb-0">
+                                             <select 
+                                                value={filterUnit}
+                                                onChange={(e) => setFilterUnit(e.target.value)}
+                                                className="bg-slate-50 dark:bg-slate-900 border-none rounded-lg px-4 py-2 text-slate-600 dark:text-slate-300 outline-none cursor-pointer min-w-[140px]"
+                                             >
+                                                 <option value="Semua">Semua Unit</option>
+                                                 {units.map(u => <option key={u.id} value={u.name}>{u.name}</option>)}
+                                             </select>
+
+                                             <select 
+                                                value={filterType}
+                                                onChange={(e) => setFilterType(e.target.value)}
+                                                className="bg-slate-50 dark:bg-slate-900 border-none rounded-lg px-4 py-2 text-slate-600 dark:text-slate-300 outline-none cursor-pointer min-w-[140px]"
+                                             >
+                                                 <option value="Semua">Semua Jenis</option>
+                                                 {types.map(t => <option key={t.id} value={t.name}>{t.name}</option>)}
+                                             </select>
+
+                                             <select 
+                                                value={filterStatus}
+                                                onChange={(e) => setFilterStatus(e.target.value)}
+                                                className="bg-slate-50 dark:bg-slate-900 border-none rounded-lg px-4 py-2 text-slate-600 dark:text-slate-300 outline-none cursor-pointer min-w-[140px]"
+                                             >
+                                                 <option value="Semua">Semua Status</option>
+                                                 <option value="Public">Public</option>
+                                                 <option value="Private">Private</option>
+                                             </select>
+                                         </div>
+
+                                         {/* View Toggle */}
+                                         <div className="flex bg-slate-50 dark:bg-slate-900 rounded-lg p-1 border border-slate-100 dark:border-slate-700">
+                                             <button 
+                                                onClick={() => setViewMode('card')}
+                                                className={`p-2 rounded-md transition ${viewMode === 'card' ? 'bg-white dark:bg-slate-700 shadow text-blue-600 dark:text-blue-400' : 'text-slate-400 hover:text-slate-600'}`}
+                                                title="Tampilan Kartu"
+                                             >
+                                                 <Icons.Grid width={18} />
+                                             </button>
+                                             <button 
+                                                onClick={() => setViewMode('list')}
+                                                className={`p-2 rounded-md transition ${viewMode === 'list' ? 'bg-white dark:bg-slate-700 shadow text-blue-600 dark:text-blue-400' : 'text-slate-400 hover:text-slate-600'}`}
+                                                title="Tampilan Tabel"
+                                             >
+                                                 <Icons.List width={18} />
+                                             </button>
+                                         </div>
+                                     </div>
+
+                                     {/* CONTENT: Card View vs Table View */}
+                                     {viewMode === 'card' ? (
+                                         /* CARD VIEW */
+                                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 animate-fade-in">
+                                            {filteredArchives.length > 0 ? filteredArchives.map(item => (
+                                                <div key={item.id} className="group bg-white dark:bg-slate-800 p-6 rounded-2xl border border-slate-200 dark:border-slate-700 hover:shadow-xl hover:border-blue-300 dark:hover:border-blue-700 transition duration-300 flex flex-col">
+                                                    <div className="flex items-start justify-between mb-4">
+                                                        <div className={`p-3 rounded-xl group-hover:scale-110 transition ${item.fileType === 'link' ? 'bg-purple-50 dark:bg-purple-900/20 text-purple-600' : 'bg-blue-50 dark:bg-blue-900/20 text-blue-600'}`}>
+                                                            {item.fileType === 'link' ? <Icons.LinkIcon width={24} /> : <Icons.FileText width={24} />}
+                                                        </div>
+                                                        <span className="text-xs font-mono text-slate-400 bg-slate-100 dark:bg-slate-700 px-2 py-1 rounded">{item.date}</span>
+                                                    </div>
+                                                    <h3 className="font-bold text-slate-800 dark:text-white text-lg mb-2 line-clamp-2 leading-snug">{item.name}</h3>
+                                                    <div className="flex flex-wrap gap-2 mb-6">
+                                                        <span className="text-[10px] font-bold uppercase tracking-wide bg-slate-100 dark:bg-slate-700 px-2 py-1 rounded text-slate-500 dark:text-slate-400">{item.typeName}</span>
+                                                        <span className="text-[10px] font-bold uppercase tracking-wide bg-indigo-50 dark:bg-indigo-900/30 px-2 py-1 rounded text-indigo-500 dark:text-indigo-400">{item.unitName}</span>
+                                                        <span className={`text-[10px] font-bold uppercase tracking-wide px-2 py-1 rounded border ${
+                                                            item.status === 'Public' ? 'bg-green-50 text-green-600 border-green-200 dark:bg-green-900/20 dark:border-green-800' : 'bg-slate-50 text-slate-500 border-slate-200 dark:bg-slate-800 dark:border-slate-600'
+                                                        }`}>
+                                                            {item.status}
+                                                        </span>
+                                                    </div>
+                                                    
+                                                    <div className="mt-auto pt-4 border-t border-slate-100 dark:border-slate-700 flex gap-2">
+                                                         <button onClick={() => handlePreview(item)} className="flex-1 py-2 bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 rounded-lg text-sm font-semibold hover:bg-blue-100 dark:hover:bg-blue-900/40 transition flex items-center justify-center">
+                                                            <Icons.Eye width={16} className="mr-2" /> Lihat
+                                                         </button>
+                                                         <button onClick={()=>alert("Mengunduh " + item.filename)} className="flex-1 py-2 bg-slate-50 dark:bg-slate-700 text-slate-600 dark:text-slate-300 rounded-lg text-sm font-semibold hover:bg-slate-100 dark:hover:bg-slate-600 transition flex items-center justify-center">
+                                                            <Icons.Download width={16} className="mr-2" /> Unduh
+                                                         </button>
+                                                         {activeMenu === 'archives' && (
+                                                             <button onClick={()=>alert("Hapus Arsip?")} className="px-3 py-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition">
+                                                                <Icons.Trash2 width={18} />
+                                                             </button>
+                                                         )}
+                                                    </div>
+                                                </div>
+                                            )) : (
+                                                <div className="col-span-full py-10 text-center text-slate-400">
+                                                    Tidak ada dokumen yang sesuai filter.
+                                                </div>
+                                            )}
+                                         </div>
+                                     ) : (
+                                         /* TABLE VIEW */
+                                         <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden animate-fade-in">
+                                             <div className="overflow-x-auto">
+                                                 <table className="w-full text-sm text-left">
+                                                     <thead className="bg-slate-50 dark:bg-slate-900/50 text-slate-500 dark:text-slate-400 uppercase text-xs tracking-wider">
+                                                         <tr>
+                                                             <th className="px-6 py-4">Nama Dokumen</th>
+                                                             <th className="px-6 py-4">Jenis</th>
+                                                             <th className="px-6 py-4">Unit</th>
+                                                             <th className="px-6 py-4">Status</th>
+                                                             <th className="px-6 py-4">Tanggal</th>
+                                                             <th className="px-6 py-4 text-right">Aksi</th>
+                                                         </tr>
+                                                     </thead>
+                                                     <tbody className="divide-y divide-slate-100 dark:divide-slate-700">
+                                                         {filteredArchives.length > 0 ? filteredArchives.map((item) => (
+                                                             <tr key={item.id} className="hover:bg-slate-50 dark:hover:bg-slate-700/30 transition">
+                                                                 <td className="px-6 py-4">
+                                                                     <div className="font-medium text-slate-800 dark:text-slate-200 flex items-center gap-2">
+                                                                         {item.fileType === 'link' ? <Icons.LinkIcon width={16} className="text-purple-500" /> : <Icons.FileText width={16} className="text-blue-500" />}
+                                                                         {item.name}
+                                                                     </div>
+                                                                 </td>
+                                                                 <td className="px-6 py-4 text-slate-600 dark:text-slate-400">{item.typeName}</td>
+                                                                 <td className="px-6 py-4 text-slate-600 dark:text-slate-400">{item.unitName}</td>
+                                                                 <td className="px-6 py-4">
+                                                                     <span className={`px-2.5 py-1 text-xs font-semibold rounded-full border ${
+                                                                         item.status === 'Public' 
+                                                                         ? 'bg-green-50 text-green-600 border-green-200 dark:bg-green-900/20 dark:border-green-800' 
+                                                                         : 'bg-slate-50 text-slate-600 border-slate-200 dark:bg-slate-800 dark:border-slate-600 dark:text-slate-400'
+                                                                     }`}>
+                                                                         {item.status}
+                                                                     </span>
+                                                                 </td>
+                                                                 <td className="px-6 py-4 text-slate-500">{item.date}</td>
+                                                                 <td className="px-6 py-4 text-right">
+                                                                     <div className="flex items-center justify-end gap-2">
+                                                                        <button onClick={() => handlePreview(item)} className="p-2 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition" title="Lihat">
+                                                                            <Icons.Eye width={16} />
+                                                                        </button>
+                                                                        <button onClick={()=>alert("Mengunduh " + item.filename)} className="p-2 text-slate-600 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-700 rounded-lg transition" title="Unduh">
+                                                                            <Icons.Download width={16} />
+                                                                        </button>
+                                                                        {activeMenu === 'archives' && (
+                                                                            <button onClick={()=>alert("Hapus?")} className="p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition" title="Hapus">
+                                                                                <Icons.Trash2 width={16} />
+                                                                            </button>
+                                                                        )}
+                                                                     </div>
+                                                                 </td>
+                                                             </tr>
+                                                         )) : (
+                                                             <tr>
+                                                                 <td colSpan="6" className="text-center py-10 text-slate-400">Tidak ada dokumen yang sesuai filter.</td>
+                                                             </tr>
+                                                         )}
+                                                     </tbody>
+                                                 </table>
+                                             </div>
+                                         </div>
+                                     )}
+                                 </div>
+                             )}
+                             
+                             {/* READ ONLY DATA VIEWS (Units / Types / Users) */}
+                             {(activeMenu === 'types' || activeMenu === 'units' || activeMenu === 'users') && (
+                                 <div className="max-w-4xl mx-auto space-y-6 animate-fade-in">
+                                     <div className="flex justify-between items-center">
+                                         <h2 className="text-2xl font-bold text-slate-800 dark:text-white">
+                                             {activeMenu === 'types' ? 'Jenis Arsip' : activeMenu === 'units' ? 'Data Unit Kerja' : 'Manajemen User'}
+                                         </h2>
+                                         <button onClick={()=>alert("Mode Demo: Tidak dapat menambah data.")} className="text-blue-600 text-sm font-bold hover:underline">+ Tambah Data</button>
+                                     </div>
+
+                                     <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 overflow-hidden shadow-sm">
+                                         <table className="w-full text-sm text-left">
+                                             <thead className="bg-slate-50 dark:bg-slate-900/50 text-slate-500 dark:text-slate-400">
+                                                 <tr>
+                                                     <th className="px-6 py-4">ID</th>
+                                                     <th className="px-6 py-4">Nama</th>
+                                                     {activeMenu === 'users' && <th className="px-6 py-4">Role</th>}
+                                                     <th className="px-6 py-4 text-right">Aksi</th>
+                                                 </tr>
+                                             </thead>
+                                             <tbody className="divide-y divide-slate-100 dark:divide-slate-700">
+                                                 {(activeMenu === 'types' ? types : activeMenu === 'units' ? units : appUsers).map((item) => (
+                                                     <tr key={item.id} className="hover:bg-slate-50 dark:hover:bg-slate-700/30">
+                                                         <td className="px-6 py-4 text-slate-400 w-16">#{item.id}</td>
+                                                         <td className="px-6 py-4 font-medium text-slate-800 dark:text-slate-200">
+                                                             {item.name}
+                                                             {item.email && <div className="text-xs text-slate-400 font-normal">{item.email}</div>}
+                                                         </td>
+                                                         {activeMenu === 'users' && (
+                                                             <td className="px-6 py-4">
+                                                                 <span className="px-2 py-1 rounded bg-slate-100 dark:bg-slate-700 text-xs text-slate-600 dark:text-slate-300">{item.role}</span>
+                                                             </td>
+                                                         )}
+                                                         <td className="px-6 py-4 text-right">
+                                                             <button className="text-slate-400 hover:text-blue-600 mr-3"><Icons.Edit width={16} /></button>
+                                                             <button className="text-slate-400 hover:text-red-600"><Icons.Trash2 width={16} /></button>
+                                                         </td>
+                                                     </tr>
+                                                 ))}
+                                             </tbody>
+                                         </table>
+                                     </div>
+                                 </div>
+                             )}
+
+                             {/* SETTINGS VIEW */}
+                             {activeMenu === 'settings' && (
+                                 <div className="max-w-2xl mx-auto space-y-6 animate-fade-in">
+                                     <h2 className="text-2xl font-bold text-slate-800 dark:text-white">Pengaturan Akun</h2>
+                                     <div className="bg-white dark:bg-slate-800 p-8 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm">
+                                         <div className="flex items-center space-x-4 mb-8">
+                                             <div className="w-16 h-16 rounded-full bg-blue-600 text-white flex items-center justify-center text-2xl font-bold">A</div>
+                                             <div>
+                                                 <h3 className="font-bold text-lg dark:text-white">Administrator</h3>
+                                                 <p className="text-slate-500">Super Admin Access</p>
+                                             </div>
+                                         </div>
+                                         <form className="space-y-4" onSubmit={(e)=>e.preventDefault()}>
+                                             <div>
+                                                 <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-1">Ganti Password</label>
+                                                 <input type="password" placeholder="Password Lama" className="w-full px-4 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-transparent dark:text-white mb-2" />
+                                                 <input type="password" placeholder="Password Baru" className="w-full px-4 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-transparent dark:text-white" />
+                                             </div>
+                                             <div className="pt-4">
+                                                 <button className="bg-blue-600 text-white px-6 py-2 rounded-lg font-bold hover:bg-blue-700 transition">Simpan Perubahan</button>
+                                             </div>
+                                         </form>
+                                     </div>
+                                 </div>
+                             )}
+
+                        </div>
+                    </main>
+                </div>
+            );
+        }
+
+        // --- SUB-COMPONENTS ---
+
+        const UploadModal = ({ types, units, onClose, onSave }) => {
+            const [activeTab, setActiveTab] = useState('file'); // 'file' or 'link'
+            const [formData, setFormData] = useState({
+                name: '', typeName: '', unitName: '', status: 'Private', filename: ''
+            });
+
+            const handleSubmit = (e) => {
+                e.preventDefault();
+                if (!formData.name || !formData.typeName || !formData.unitName || !formData.filename) {
+                    alert('Mohon lengkapi semua data!');
+                    return;
+                }
+                const newDoc = {
+                    id: Date.now(),
+                    ...formData,
+                    fileType: activeTab,
+                    date: new Date().toLocaleDateString('id-ID'),
+                };
+                onSave(newDoc);
+            };
+
+            return (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-fade-in">
+                    <div className="bg-white dark:bg-slate-800 w-full max-w-lg rounded-2xl p-6 shadow-2xl animate-slide-up border border-slate-200 dark:border-slate-700">
+                        <div className="flex justify-between items-center mb-6">
+                            <h3 className="text-xl font-bold text-slate-800 dark:text-white">Upload Arsip Baru</h3>
+                            <button onClick={onClose} className="text-slate-400 hover:text-red-500"><Icons.X width={24} /></button>
+                        </div>
+                        
+                        {/* Tabs */}
+                        <div className="flex space-x-2 mb-6 bg-slate-100 dark:bg-slate-900 p-1 rounded-xl">
+                            <button onClick={() => setActiveTab('file')} className={`flex-1 py-2 rounded-lg text-sm font-bold transition ${activeTab === 'file' ? 'bg-white dark:bg-slate-700 shadow text-blue-600 dark:text-white' : 'text-slate-500 dark:text-slate-400'}`}>Upload File</button>
+                            <button onClick={() => setActiveTab('link')} className={`flex-1 py-2 rounded-lg text-sm font-bold transition ${activeTab === 'link' ? 'bg-white dark:bg-slate-700 shadow text-blue-600 dark:text-white' : 'text-slate-500 dark:text-slate-400'}`}>Link Dokumen</button>
+                        </div>
+
+                        <form onSubmit={handleSubmit} className="space-y-4">
+                            <div>
+                                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Nama Dokumen</label>
+                                <input required type="text" className="w-full px-4 py-2 rounded-lg border dark:border-slate-600 bg-transparent dark:text-white outline-none focus:ring-2 focus:ring-blue-500" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} />
+                            </div>
+                            <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Jenis</label>
+                                    <select required className="w-full px-4 py-2 rounded-lg border dark:border-slate-600 bg-transparent dark:text-white outline-none" value={formData.typeName} onChange={e => setFormData({...formData, typeName: e.target.value})}>
+                                        <option value="">Pilih Jenis</option>
+                                        {types.map(t => <option key={t.id} value={t.name}>{t.name}</option>)}
+                                    </select>
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Unit</label>
+                                    <select required className="w-full px-4 py-2 rounded-lg border dark:border-slate-600 bg-transparent dark:text-white outline-none" value={formData.unitName} onChange={e => setFormData({...formData, unitName: e.target.value})}>
+                                        <option value="">Pilih Unit</option>
+                                        {units.map(u => <option key={u.id} value={u.name}>{u.name}</option>)}
+                                    </select>
+                                </div>
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Status</label>
+                                <select className="w-full px-4 py-2 rounded-lg border dark:border-slate-600 bg-transparent dark:text-white outline-none" value={formData.status} onChange={e => setFormData({...formData, status: e.target.value})}>
+                                    <option value="Private">Private (Internal)</option>
+                                    <option value="Public">Public (Umum)</option>
+                                </select>
+                            </div>
+                            
+                            <div className="pt-2">
+                                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+                                    {activeTab === 'file' ? 'Pilih File (Simulasi)' : 'URL Link Dokumen'}
+                                </label>
+                                {activeTab === 'file' ? (
+                                    <div className="border-2 border-dashed border-slate-300 dark:border-slate-600 rounded-lg p-6 text-center cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-700/50 transition relative">
+                                        <Icons.Upload className="mx-auto text-slate-400 mb-2" />
+                                        <p className="text-sm text-slate-500">Klik untuk pilih file</p>
+                                        <input type="file" className="absolute inset-0 opacity-0 cursor-pointer" onChange={e => setFormData({...formData, filename: e.target.files[0]?.name || 'file_baru.pdf'})} />
+                                        {formData.filename && <p className="text-sm text-blue-600 mt-2 font-bold">{formData.filename}</p>}
+                                    </div>
+                                ) : (
+                                    <input 
+                                        type="url" 
+                                        placeholder="https://drive.google.com/..." 
+                                        className="w-full px-4 py-2 rounded-lg border dark:border-slate-600 bg-transparent dark:text-white outline-none focus:ring-2 focus:ring-blue-500"
+                                        value={formData.filename}
+                                        onChange={e => setFormData({...formData, filename: e.target.value})}
+                                    />
+                                )}
+                            </div>
+
+                            <button className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl mt-4">Simpan Arsip</button>
+                        </form>
+                    </div>
+                </div>
+            );
+        };
+
+        const PreviewModal = ({ item, onClose }) => {
+            return (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4 animate-fade-in">
+                    <div className="bg-white dark:bg-slate-800 w-full max-w-4xl h-[85vh] rounded-2xl shadow-2xl flex flex-col overflow-hidden animate-slide-up">
+                        <div className="px-6 py-4 border-b border-slate-200 dark:border-slate-700 flex justify-between items-center bg-slate-50 dark:bg-slate-900">
+                            <div>
+                                <h3 className="font-bold text-lg text-slate-800 dark:text-white truncate max-w-md">{item.name}</h3>
+                                <p className="text-xs text-slate-500">{item.fileType === 'link' ? 'Link Eksternal' : 'Dokumen File'}</p>
+                            </div>
+                            <button onClick={onClose} className="p-2 bg-slate-200 dark:bg-slate-700 rounded-full hover:bg-red-500 hover:text-white transition"><Icons.X width={20} /></button>
+                        </div>
+                        <div className="flex-1 bg-slate-100 dark:bg-slate-900/50 flex flex-col items-center justify-center p-6 relative">
+                            {item.fileType === 'link' ? (
+                                <div className="text-center">
+                                    <div className="w-20 h-20 bg-blue-100 dark:bg-blue-900/30 rounded-full flex items-center justify-center mx-auto mb-4 text-blue-600">
+                                        <Icons.LinkIcon width={40} />
+                                    </div>
+                                    <h4 className="text-xl font-bold mb-2 dark:text-white">Ini adalah Link Eksternal</h4>
+                                    <p className="text-slate-500 mb-6 max-w-md mx-auto break-words">{item.filename}</p>
+                                    <a href={item.filename} target="_blank" className="px-6 py-3 bg-blue-600 text-white rounded-lg font-bold hover:bg-blue-700 inline-flex items-center">
+                                        Buka Link <Icons.Globe width={16} className="ml-2"/>
+                                    </a>
+                                </div>
+                            ) : (
+                                // Simulation for File Preview
+                                <div className="w-full h-full border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 rounded-xl shadow-inner flex flex-col items-center justify-center text-center">
+                                    {item.filename.endsWith('.pdf') ? (
+                                        <div className="flex flex-col items-center">
+                                            <Icons.FileText width={64} className="text-red-500 mb-4 opacity-50" />
+                                            <p className="text-slate-400">Preview PDF Simulasi</p>
+                                            <p className="font-mono text-sm dark:text-white mt-2">{item.filename}</p>
+                                            <button onClick={()=>alert("Membuka PDF viewer...")} className="mt-6 px-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg text-sm hover:bg-slate-50 dark:hover:bg-slate-700 transition">Buka Fullscreen</button>
+                                        </div>
+                                    ) : (
+                                        <div className="flex flex-col items-center">
+                                            <Icons.FileText width={64} className="text-green-600 mb-4 opacity-50" />
+                                            <p className="text-slate-400">Preview File Simulasi</p>
+                                            <p className="font-mono text-sm dark:text-white mt-2">{item.filename}</p>
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        // Stats Card Component Helper
+        const StatCard = ({ title, value, icon: IconName, color }) => {
+            const Icon = Icons[IconName];
+            const colors = { 
+                blue: "text-blue-600 bg-blue-100 dark:bg-blue-900/30", 
+                green: "text-green-600 bg-green-100 dark:bg-green-900/30", 
+                purple: "text-purple-600 bg-purple-100 dark:bg-purple-900/30", 
+                orange: "text-orange-600 bg-orange-100 dark:bg-orange-900/30" 
+            };
+            return (
+                <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 flex items-start justify-between hover:shadow-md transition duration-300">
+                    <div>
+                        <p className="text-sm font-medium text-slate-500 dark:text-slate-400 mb-1">{title}</p>
+                        <h3 className="text-3xl font-bold text-slate-800 dark:text-white">{value}</h3>
+                    </div>
+                    <div className={`p-3 rounded-xl ${colors[color]}`}>
+                        <Icon width={24} height={24} />
+                    </div>
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
