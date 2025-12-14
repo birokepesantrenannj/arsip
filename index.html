@@ -88,7 +88,9 @@
             Filter: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>,
             X: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18"/><path d="m6 6 18 18"/></svg>,
             LinkIcon: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>,
-            Globe: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/><path d="M2 12h20"/></svg>
+            Globe: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/><path d="M2 12h20"/></svg>,
+            AlertCircle: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" x2="12" y1="8" y2="12"/><line x1="12" x2="12.01" y1="16" y2="16"/></svg>,
+            HelpCircle: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></svg>
         };
 
         // --- COMPONENTS ---
@@ -103,12 +105,21 @@
             
             // Modal States
             const [showUploadModal, setShowUploadModal] = useState(false);
-            const [showMasterModal, setShowMasterModal] = useState(false); // New: Modal for Types/Units/Users
+            const [showMasterModal, setShowMasterModal] = useState(false); 
             const [showPreviewModal, setShowPreviewModal] = useState(false);
             
+            // Confirm Modal State
+            const [confirmConfig, setConfirmConfig] = useState({
+                isOpen: false,
+                title: '',
+                message: '',
+                onConfirm: () => {},
+                isDanger: false
+            });
+            
             const [previewItem, setPreviewItem] = useState(null);
-            const [masterItem, setMasterItem] = useState(null); // Current item being edited
-            const [masterType, setMasterType] = useState(''); // 'type', 'unit', or 'user'
+            const [masterItem, setMasterItem] = useState(null); 
+            const [masterType, setMasterType] = useState(''); 
 
             // Filter & View State
             const [viewMode, setViewMode] = useState('card');
@@ -127,19 +138,16 @@
             useEffect(() => {
                 const loadData = async () => {
                     try {
-                        // 1. Load Archives
                         const localArchives = localStorage.getItem('archives');
                         if (localArchives) {
                             setArchives(JSON.parse(localArchives));
                         } else {
-                            // Fallback to JSON file if no local data
                             try {
                                 const res = await fetch('./data/arsip.json');
                                 if(res.ok) setArchives(await res.json());
                             } catch(e) { console.log('No arsip.json found or fetch failed'); }
                         }
 
-                        // 2. Load Types
                         const localTypes = localStorage.getItem('types');
                         if (localTypes) {
                             setTypes(JSON.parse(localTypes));
@@ -150,7 +158,6 @@
                             } catch(e) { console.log('No jenis.json found'); }
                         }
 
-                        // 3. Load Units
                         const localUnits = localStorage.getItem('units');
                         if (localUnits) {
                             setUnits(JSON.parse(localUnits));
@@ -161,7 +168,6 @@
                             } catch(e) { console.log('No unit.json found'); }
                         }
 
-                        // 4. Load Users (Dummy default if empty)
                         const localUsers = localStorage.getItem('appUsers');
                         if (localUsers) {
                             setAppUsers(JSON.parse(localUsers));
@@ -192,7 +198,6 @@
                 else document.documentElement.classList.remove('dark');
             }, [isDarkMode]);
 
-            // Reset filters when menu changes
             useEffect(() => {
                 setSearchTerm('');
                 setFilterType('Semua');
@@ -215,6 +220,20 @@
                 }
             };
 
+            // --- CONFIRMATION HANDLER ---
+            const openConfirm = ({ title, message, onConfirm, isDanger = false }) => {
+                setConfirmConfig({
+                    isOpen: true,
+                    title,
+                    message,
+                    onConfirm: () => {
+                        onConfirm();
+                        setConfirmConfig(prev => ({ ...prev, isOpen: false }));
+                    },
+                    isDanger
+                });
+            };
+
             // --- CRUD HANDLERS ---
 
             // Archives
@@ -223,15 +242,34 @@
                 setShowUploadModal(false);
             };
             const handleDeleteArchive = (id) => {
-                if(confirm("Yakin ingin menghapus arsip ini?")) {
-                    setArchives(archives.filter(a => a.id !== id));
-                }
+                openConfirm({
+                    title: "Hapus Arsip",
+                    message: "Apakah Anda yakin ingin menghapus arsip ini? Tindakan ini tidak dapat dibatalkan.",
+                    onConfirm: () => setArchives(archives.filter(a => a.id !== id)),
+                    isDanger: true
+                });
+            };
+
+            const handleDownload = (filename) => {
+                openConfirm({
+                    title: "Unduh Dokumen",
+                    message: `Apakah Anda ingin mengunduh berkas "${filename}"?`,
+                    onConfirm: () => {
+                        // Simulate download link click
+                        const link = document.createElement('a');
+                        link.href = filename.startsWith('blob:') ? filename : `dokumen/${filename}`;
+                        link.download = filename;
+                        document.body.appendChild(link);
+                        link.click();
+                        document.body.removeChild(link);
+                    }
+                });
             };
 
             // Master Data (Types, Units, Users)
             const openMasterModal = (type, item = null) => {
                 setMasterType(type);
-                setMasterItem(item); // If item is null, it's Add mode. If exists, Edit mode.
+                setMasterItem(item); 
                 setShowMasterModal(true);
             };
 
@@ -253,10 +291,16 @@
             };
 
             const handleDeleteMaster = (type, id) => {
-                if(!confirm("Hapus data ini?")) return;
-                if (type === 'types') setTypes(types.filter(t => t.id !== id));
-                if (type === 'units') setUnits(units.filter(u => u.id !== id));
-                if (type === 'users') setAppUsers(appUsers.filter(u => u.id !== id));
+                openConfirm({
+                    title: "Hapus Data",
+                    message: "Yakin ingin menghapus data ini?",
+                    onConfirm: () => {
+                        if (type === 'types') setTypes(types.filter(t => t.id !== id));
+                        if (type === 'units') setUnits(units.filter(u => u.id !== id));
+                        if (type === 'users') setAppUsers(appUsers.filter(u => u.id !== id));
+                    },
+                    isDanger: true
+                });
             };
 
             // Handle View/Preview
@@ -315,7 +359,6 @@
                 );
             };
 
-            // Helper for Bottom Nav Item
             const BottomNavItem = ({ id, icon: IconName, label }) => {
                 const Icon = Icons[IconName];
                 const active = activeMenu === id;
@@ -337,6 +380,17 @@
             return (
                 <div className={`flex h-screen overflow-hidden ${isDarkMode ? 'dark bg-slate-900' : 'bg-slate-50'}`}>
                     
+                    {/* --- CONFIRMATION MODAL --- */}
+                    {confirmConfig.isOpen && (
+                        <ConfirmModal 
+                            title={confirmConfig.title}
+                            message={confirmConfig.message}
+                            isDanger={confirmConfig.isDanger}
+                            onConfirm={confirmConfig.onConfirm}
+                            onCancel={() => setConfirmConfig(prev => ({...prev, isOpen: false}))}
+                        />
+                    )}
+
                     {/* --- UPLOAD MODAL --- */}
                     {showUploadModal && (
                         <UploadModal 
@@ -347,7 +401,7 @@
                         />
                     )}
 
-                    {/* --- MASTER DATA MODAL (NEW) --- */}
+                    {/* --- MASTER DATA MODAL --- */}
                     {showMasterModal && (
                         <MasterDataModal
                             type={masterType}
@@ -365,9 +419,8 @@
                         />
                     )}
 
-                    {/* DESKTOP SIDEBAR (HIDDEN ON MOBILE) */}
+                    {/* DESKTOP SIDEBAR */}
                     <aside className={`hidden md:flex ${isSidebarOpen ? 'w-64' : 'w-20'} bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 flex-col transition-all duration-300 z-20 shadow-xl`}>
-                        {/* ... (Sidebar Header & Toggle Button Code Same as Before) ... */}
                         <div className="p-6 flex items-center justify-between">
                             <div className="flex items-center space-x-3 overflow-hidden">
                                 <div className="bg-blue-600 p-2 rounded-lg text-white shrink-0"><Icons.FolderOpen width={24} /></div>
@@ -441,7 +494,6 @@
                          {/* Header */}
                          <header className="h-16 bg-white/80 dark:bg-slate-900/80 backdrop-blur border-b border-slate-200 dark:border-slate-800 flex items-center justify-between px-6 sticky top-0 z-10">
                             <div className="flex items-center">
-                                {/* Hamburger removed on mobile since we have bottom nav */}
                                 <h2 className="text-lg font-bold text-slate-800 dark:text-white capitalize flex items-center">
                                     <span className="text-slate-400 mr-2 font-light">/</span> 
                                     {activeMenu.replace('_', ' ')}
@@ -654,7 +706,7 @@
                                                          <button onClick={() => handlePreview(item)} className="flex-1 py-2 bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 rounded-lg text-sm font-semibold hover:bg-blue-100 dark:hover:bg-blue-900/40 transition flex items-center justify-center">
                                                             <Icons.Eye width={16} className="mr-2" /> Lihat
                                                          </button>
-                                                         <button onClick={()=>alert("Mengunduh " + item.filename)} className="flex-1 py-2 bg-slate-50 dark:bg-slate-700 text-slate-600 dark:text-slate-300 rounded-lg text-sm font-semibold hover:bg-slate-100 dark:hover:bg-slate-600 transition flex items-center justify-center">
+                                                         <button onClick={() => handleDownload(item.fileUrl || item.filename)} className="flex-1 py-2 bg-slate-50 dark:bg-slate-700 text-slate-600 dark:text-slate-300 rounded-lg text-sm font-semibold hover:bg-slate-100 dark:hover:bg-slate-600 transition flex items-center justify-center">
                                                             <Icons.Download width={16} className="mr-2" /> Unduh
                                                          </button>
                                                          {activeMenu === 'archives' && (
@@ -709,7 +761,7 @@
                                                                         <button onClick={() => handlePreview(item)} className="p-2 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition" title="Lihat">
                                                                             <Icons.Eye width={16} />
                                                                         </button>
-                                                                        <button onClick={()=>alert("Mengunduh " + item.filename)} className="p-2 text-slate-600 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-700 rounded-lg transition" title="Unduh">
+                                                                        <button onClick={() => handleDownload(item.fileUrl || item.filename)} className="p-2 text-slate-600 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-700 rounded-lg transition" title="Unduh">
                                                                             <Icons.Download width={16} />
                                                                         </button>
                                                                         {activeMenu === 'archives' && (
@@ -831,12 +883,46 @@
             );
         }
 
-        // --- MODAL COMPONENTS ---
+        // --- COMPONENTS (ConfirmModal) ---
+        const ConfirmModal = ({ title, message, isDanger, onConfirm, onCancel }) => {
+            return (
+                <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-fade-in">
+                    <div className="bg-white dark:bg-slate-800 w-full max-w-sm rounded-2xl p-6 shadow-2xl animate-slide-up border border-slate-200 dark:border-slate-700">
+                        <div className="flex flex-col items-center text-center">
+                            <div className={`mb-4 p-3 rounded-full ${isDanger ? 'bg-red-100 text-red-600' : 'bg-blue-100 text-blue-600'}`}>
+                                {isDanger ? <Icons.Trash2 width={32} /> : <Icons.HelpCircle width={32} />}
+                            </div>
+                            <h3 className="text-lg font-bold text-slate-800 dark:text-white mb-2">{title}</h3>
+                            <p className="text-slate-500 dark:text-slate-400 mb-6 text-sm">{message}</p>
+                            <div className="flex gap-3 w-full">
+                                <button 
+                                    onClick={onCancel}
+                                    className="flex-1 py-2.5 rounded-xl border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 font-semibold hover:bg-slate-50 dark:hover:bg-slate-700 transition"
+                                >
+                                    Batal
+                                </button>
+                                <button 
+                                    onClick={onConfirm}
+                                    className={`flex-1 py-2.5 rounded-xl text-white font-semibold shadow-lg transition ${
+                                        isDanger 
+                                        ? 'bg-red-600 hover:bg-red-700 shadow-red-500/30' 
+                                        : 'bg-blue-600 hover:bg-blue-700 shadow-blue-500/30'
+                                    }`}
+                                >
+                                    {isDanger ? 'Ya, Hapus' : 'Ya, Lanjutkan'}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
 
+        // --- UPLOAD MODAL COMPONENT (Adjusted for Preview) ---
         const UploadModal = ({ types, units, onClose, onSave }) => {
             const [activeTab, setActiveTab] = useState('file'); 
             const [formData, setFormData] = useState({
-                name: '', typeName: '', unitName: '', status: 'Private', filename: ''
+                name: '', typeName: '', unitName: '', status: 'Private', filename: '', fileObj: null
             });
 
             const handleSubmit = (e) => {
@@ -845,10 +931,18 @@
                     alert('Mohon lengkapi semua data!');
                     return;
                 }
+                
+                // Create Blob URL for local preview
+                let fileUrl = '';
+                if (activeTab === 'file' && formData.fileObj) {
+                    fileUrl = URL.createObjectURL(formData.fileObj);
+                }
+
                 const newDoc = {
                     id: Date.now(),
                     ...formData,
                     fileType: activeTab,
+                    fileUrl: fileUrl, // Store blob URL
                     date: new Date().toLocaleDateString('id-ID'),
                 };
                 onSave(newDoc);
@@ -901,7 +995,16 @@
                                     <div className="border-2 border-dashed border-slate-300 dark:border-slate-600 rounded-lg p-6 text-center cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-700/50 transition relative">
                                         <Icons.Upload className="mx-auto text-slate-400 mb-2" />
                                         <p className="text-sm text-slate-500">Klik untuk pilih file</p>
-                                        <input type="file" className="absolute inset-0 opacity-0 cursor-pointer" onChange={e => setFormData({...formData, filename: e.target.files[0]?.name || 'file_baru.pdf'})} />
+                                        <input 
+                                            type="file" 
+                                            className="absolute inset-0 opacity-0 cursor-pointer" 
+                                            onChange={e => {
+                                                const file = e.target.files[0];
+                                                if(file){
+                                                    setFormData({...formData, filename: file.name, fileObj: file});
+                                                }
+                                            }} 
+                                        />
                                         {formData.filename && <p className="text-sm text-blue-600 mt-2 font-bold">{formData.filename}</p>}
                                     </div>
                                 ) : (
@@ -921,120 +1024,56 @@
             );
         };
 
-        const MasterDataModal = ({ type, initialData, onClose, onSave }) => {
-            const [formData, setFormData] = useState(initialData || (type === 'users' ? { username: '', password: '', role: 'Operator' } : { name: '' }));
-            
-            const title = type === 'types' ? 'Jenis Arsip' : type === 'units' ? 'Unit Kerja' : 'User';
-
-            const handleSubmit = (e) => {
-                e.preventDefault();
-                onSave(formData);
-            };
-
-            return (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-fade-in">
-                    <div className="bg-white dark:bg-slate-800 w-full max-w-md rounded-2xl p-6 shadow-2xl animate-slide-up border border-slate-200 dark:border-slate-700">
-                        <div className="flex justify-between items-center mb-6">
-                            <h3 className="text-xl font-bold text-slate-800 dark:text-white">{initialData ? 'Edit' : 'Tambah'} {title}</h3>
-                            <button onClick={onClose} className="text-slate-400 hover:text-red-500"><Icons.X width={24} /></button>
-                        </div>
-                        <form onSubmit={handleSubmit} className="space-y-4">
-                            {type === 'users' ? (
-                                <>
-                                    <div>
-                                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Username</label>
-                                        <input required type="text" className="w-full px-4 py-2 rounded-lg border dark:border-slate-600 bg-transparent dark:text-white outline-none" value={formData.username} onChange={e => setFormData({...formData, username: e.target.value})} />
-                                    </div>
-                                    <div>
-                                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Password</label>
-                                        <input required type="text" className="w-full px-4 py-2 rounded-lg border dark:border-slate-600 bg-transparent dark:text-white outline-none" value={formData.password} onChange={e => setFormData({...formData, password: e.target.value})} />
-                                    </div>
-                                    <div>
-                                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Role</label>
-                                        <select className="w-full px-4 py-2 rounded-lg border dark:border-slate-600 bg-transparent dark:text-white outline-none" value={formData.role} onChange={e => setFormData({...formData, role: e.target.value})}>
-                                            <option>Admin</option>
-                                            <option>Operator</option>
-                                            <option>Viewer</option>
-                                        </select>
-                                    </div>
-                                </>
-                            ) : (
-                                <div>
-                                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Nama {title}</label>
-                                    <input required type="text" className="w-full px-4 py-2 rounded-lg border dark:border-slate-600 bg-transparent dark:text-white outline-none" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} />
-                                </div>
-                            )}
-                            <button className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl mt-2">Simpan Data</button>
-                        </form>
-                    </div>
-                </div>
-            );
-        };
-
         const PreviewModal = ({ item, onClose }) => {
+            // Determine source: Blob URL (new upload) or path (existing data)
+            const src = item.fileUrl ? item.fileUrl : `dokumen/${item.filename}`;
+            
             return (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4 animate-fade-in">
-                    <div className="bg-white dark:bg-slate-800 w-full max-w-4xl h-[85vh] rounded-2xl shadow-2xl flex flex-col overflow-hidden animate-slide-up">
-                        <div className="px-6 py-4 border-b border-slate-200 dark:border-slate-700 flex justify-between items-center bg-slate-50 dark:bg-slate-900">
+                <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-fade-in">
+                    <div className="bg-white dark:bg-slate-900 w-full max-w-5xl h-[90vh] rounded-2xl shadow-2xl flex flex-col overflow-hidden animate-slide-up relative">
+                        <button 
+                            onClick={onClose} 
+                            className="absolute top-4 right-4 z-50 p-2 bg-black/50 hover:bg-red-600 text-white rounded-full transition backdrop-blur-md"
+                        >
+                            <Icons.X width={24} />
+                        </button>
+                        
+                        <div className="px-6 py-4 border-b border-slate-200 dark:border-slate-800 flex justify-between items-center bg-white dark:bg-slate-900 z-40">
                             <div>
                                 <h3 className="font-bold text-lg text-slate-800 dark:text-white truncate max-w-md">{item.name}</h3>
-                                <p className="text-xs text-slate-500">{item.fileType === 'link' ? 'Link Eksternal' : 'Dokumen File'}</p>
+                                <p className="text-xs text-slate-500">{item.fileType === 'link' ? 'Link Eksternal' : item.filename}</p>
                             </div>
-                            <button onClick={onClose} className="p-2 bg-slate-200 dark:bg-slate-700 rounded-full hover:bg-red-500 hover:text-white transition"><Icons.X width={20} /></button>
                         </div>
-                        <div className="flex-1 bg-slate-100 dark:bg-slate-900/50 flex flex-col items-center justify-center p-6 relative">
+
+                        <div className="flex-1 bg-slate-100 dark:bg-slate-950 flex flex-col items-center justify-center relative overflow-hidden">
                             {item.fileType === 'link' ? (
-                                <div className="text-center">
-                                    <div className="w-20 h-20 bg-blue-100 dark:bg-blue-900/30 rounded-full flex items-center justify-center mx-auto mb-4 text-blue-600">
-                                        <Icons.LinkIcon width={40} />
+                                <div className="text-center p-8">
+                                    <div className="w-24 h-24 bg-blue-100 dark:bg-blue-900/30 rounded-full flex items-center justify-center mx-auto mb-6 text-blue-600 animate-pulse">
+                                        <Icons.LinkIcon width={48} />
                                     </div>
-                                    <h4 className="text-xl font-bold mb-2 dark:text-white">Ini adalah Link Eksternal</h4>
-                                    <p className="text-slate-500 mb-6 max-w-md mx-auto break-words">{item.filename}</p>
-                                    <a href={item.filename} target="_blank" className="px-6 py-3 bg-blue-600 text-white rounded-lg font-bold hover:bg-blue-700 inline-flex items-center">
-                                        Buka Link <Icons.Globe width={16} className="ml-2"/>
+                                    <h4 className="text-2xl font-bold mb-3 dark:text-white">Tautan Eksternal</h4>
+                                    <p className="text-slate-500 mb-8 max-w-md mx-auto break-words bg-white dark:bg-slate-800 p-4 rounded-lg border border-slate-200 dark:border-slate-700 font-mono text-sm">{item.filename}</p>
+                                    <a href={item.filename} target="_blank" className="px-8 py-3 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 inline-flex items-center shadow-lg shadow-blue-500/30 transition transform hover:-translate-y-1">
+                                        Buka Tautan <Icons.Globe width={18} className="ml-2"/>
                                     </a>
                                 </div>
                             ) : (
-                                <div className="w-full h-full border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 rounded-xl shadow-inner flex flex-col items-center justify-center text-center">
-                                    {item.filename.endsWith('.pdf') ? (
-                                        <div className="flex flex-col items-center">
-                                            <Icons.FileText width={64} className="text-red-500 mb-4 opacity-50" />
-                                            <p className="text-slate-400">Preview PDF Simulasi</p>
-                                            <p className="font-mono text-sm dark:text-white mt-2">{item.filename}</p>
-                                            <button onClick={()=>alert("Membuka PDF viewer...")} className="mt-6 px-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg text-sm hover:bg-slate-50 dark:hover:bg-slate-700 transition">Buka Fullscreen</button>
+                                item.filename.toLowerCase().endsWith('.pdf') ? (
+                                    <iframe src={src} className="w-full h-full border-none" title="PDF Preview"></iframe>
+                                ) : (
+                                    <div className="text-center p-8">
+                                        <div className="w-24 h-24 bg-slate-200 dark:bg-slate-800 rounded-full flex items-center justify-center mx-auto mb-6 text-slate-500">
+                                            <Icons.FileText width={48} />
                                         </div>
-                                    ) : (
-                                        <div className="flex flex-col items-center">
-                                            <Icons.FileText width={64} className="text-green-600 mb-4 opacity-50" />
-                                            <p className="text-slate-400">Preview File Simulasi</p>
-                                            <p className="font-mono text-sm dark:text-white mt-2">{item.filename}</p>
-                                        </div>
-                                    )}
-                                </div>
+                                        <h4 className="text-xl font-bold mb-2 dark:text-white">Pratinjau File</h4>
+                                        <p className="text-slate-500 mb-6">Tipe file ini tidak mendukung pratinjau langsung.</p>
+                                        <a href={src} download={item.filename} className="px-6 py-2 border border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300 rounded-lg font-semibold hover:bg-slate-50 dark:hover:bg-slate-800 transition">
+                                            Unduh untuk Melihat
+                                        </a>
+                                    </div>
+                                )
                             )}
                         </div>
-                    </div>
-                </div>
-            );
-        };
-
-        // Stats Card Component Helper
-        const StatCard = ({ title, value, icon: IconName, color }) => {
-            const Icon = Icons[IconName];
-            const colors = { 
-                blue: "text-blue-600 bg-blue-100 dark:bg-blue-900/30", 
-                green: "text-green-600 bg-green-100 dark:bg-green-900/30", 
-                purple: "text-purple-600 bg-purple-100 dark:bg-purple-900/30", 
-                orange: "text-orange-600 bg-orange-100 dark:bg-orange-900/30" 
-            };
-            return (
-                <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 flex items-start justify-between hover:shadow-md transition duration-300">
-                    <div>
-                        <p className="text-sm font-medium text-slate-500 dark:text-slate-400 mb-1">{title}</p>
-                        <h3 className="text-3xl font-bold text-slate-800 dark:text-white">{value}</h3>
-                    </div>
-                    <div className={`p-3 rounded-xl ${colors[color]}`}>
-                        <Icon width={24} height={24} />
                     </div>
                 </div>
             );
