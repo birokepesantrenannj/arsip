@@ -86,7 +86,6 @@
 
         function App() {
             // UI State
-            // UPDATE: Inisialisasi awal ke 'public' agar user yang belum login langsung melihat Arsip Publik
             const [activeMenu, setActiveMenu] = useState('public');
             const [isSidebarOpen, setIsSidebarOpen] = useState(true);
             const [isDarkMode, setIsDarkMode] = useState(false);
@@ -95,15 +94,19 @@
             
             // Modal States
             const [showUploadModal, setShowUploadModal] = useState(false);
+            const [showMasterModal, setShowMasterModal] = useState(false); // New: Modal for Types/Units/Users
             const [showPreviewModal, setShowPreviewModal] = useState(false);
+            
             const [previewItem, setPreviewItem] = useState(null);
+            const [masterItem, setMasterItem] = useState(null); // Current item being edited
+            const [masterType, setMasterType] = useState(''); // 'type', 'unit', or 'user'
 
             // Filter & View State
             const [viewMode, setViewMode] = useState('card');
             const [searchTerm, setSearchTerm] = useState('');
             const [filterType, setFilterType] = useState('Semua');
             const [filterStatus, setFilterStatus] = useState('Semua');
-            const [filterUnit, setFilterUnit] = useState('Semua'); // Restore Filter Unit
+            const [filterUnit, setFilterUnit] = useState('Semua');
 
             // Data States
             const [archives, setArchives] = useState([]);
@@ -111,51 +114,69 @@
             const [units, setUnits] = useState([]);
             const [appUsers, setAppUsers] = useState([]);
 
-            // --- LOAD DUMMY DATA ---
+            // --- LOAD DATA (FETCH + LOCAL STORAGE) ---
             useEffect(() => {
-                const timer = setTimeout(() => {
-                    setArchives([
-                        { id: 1, name: "SK Pengangkatan Pengurus 2024", typeName: "Peraturan Kepala", unitName: "SDM & Personalia", status: "Public", date: "02/01/2024", filename: "sk_pengurus.pdf", fileType: "file" },
-                        { id: 2, name: "SOP Perizinan Pulang Santri", typeName: "SOP", unitName: "Kesantrian", status: "Public", date: "15/02/2024", filename: "sop_izin.pdf", fileType: "file" },
-                        { id: 3, name: "Laporan Keuangan Semester Ganjil", typeName: "Laporan", unitName: "Bendahara", status: "Private", date: "20/06/2024", filename: "lap_keuangan.xlsx", fileType: "file" },
-                        { id: 4, name: "Data Kesehatan Santri Baru", typeName: "Data", unitName: "Kesehatan", status: "Private", date: "10/07/2024", filename: "data_kesehatan.xlsx", fileType: "file" },
-                        { id: 5, name: "Jadwal Imam Masjid Q1", typeName: "Jadwal", unitName: "Ibadah", status: "Public", date: "01/01/2025", filename: "jadwal_imam.pdf", fileType: "file" },
-                        { id: 6, name: "Pedoman Kebersihan Asrama", typeName: "Pedoman", unitName: "Kebersihan", status: "Public", date: "05/01/2025", filename: "pedoman_bersih.pdf", fileType: "file" },
-                        { id: 7, name: "Link Drive Materi Kajian", typeName: "Data", unitName: "Ibadah", status: "Public", date: "01/03/2025", filename: "https://drive.google.com/materi", fileType: "link" },
-                        { id: 8, name: "RAB Pembangunan Gedung C", typeName: "Laporan", unitName: "Sarpras", status: "Private", date: "12/03/2025", filename: "rab_gedung.xlsx", fileType: "file" },
-                    ]);
-                    
-                    setTypes([
-                        { id: 1, name: "Peraturan Kepala" }, 
-                        { id: 2, name: "SOP" }, 
-                        { id: 3, name: "Surat Edaran" }, 
-                        { id: 4, name: "Laporan" },
-                        { id: 5, name: "Pedoman" },
-                        { id: 6, name: "Jadwal" },
-                        { id: 7, name: "Data" }
-                    ]);
+                const loadData = async () => {
+                    try {
+                        // 1. Load Archives
+                        const localArchives = localStorage.getItem('archives');
+                        if (localArchives) {
+                            setArchives(JSON.parse(localArchives));
+                        } else {
+                            // Fallback to JSON file if no local data
+                            try {
+                                const res = await fetch('./data/arsip.json');
+                                if(res.ok) setArchives(await res.json());
+                            } catch(e) { console.log('No arsip.json found or fetch failed'); }
+                        }
 
-                    setUnits([
-                        { id: 1, name: "Kesantrian" }, 
-                        { id: 2, name: "Bendahara" }, 
-                        { id: 3, name: "Sekretariat" }, 
-                        { id: 4, name: "Kesehatan" }, 
-                        { id: 5, name: "Ibadah" }, 
-                        { id: 6, name: "Kebersihan" },
-                        { id: 7, name: "Sarpras" },
-                        { id: 8, name: "SDM & Personalia" }
-                    ]);
+                        // 2. Load Types
+                        const localTypes = localStorage.getItem('types');
+                        if (localTypes) {
+                            setTypes(JSON.parse(localTypes));
+                        } else {
+                            try {
+                                const res = await fetch('./data/jenis.json');
+                                if(res.ok) setTypes(await res.json());
+                            } catch(e) { console.log('No jenis.json found'); }
+                        }
 
-                    setAppUsers([
-                        { id: 1, name: "Admin Utama", email: "admin@pesantren.id", role: "Admin" },
-                        { id: 2, name: "Staf TU", email: "tu@pesantren.id", role: "Operator" },
-                        { id: 3, name: "Kepala Biro", email: "kabiro@pesantren.id", role: "Viewer" }
-                    ]);
+                        // 3. Load Units
+                        const localUnits = localStorage.getItem('units');
+                        if (localUnits) {
+                            setUnits(JSON.parse(localUnits));
+                        } else {
+                            try {
+                                const res = await fetch('./data/unit.json');
+                                if(res.ok) setUnits(await res.json());
+                            } catch(e) { console.log('No unit.json found'); }
+                        }
 
-                    setIsLoading(false);
-                }, 800);
-                return () => clearTimeout(timer);
+                        // 4. Load Users (Dummy default if empty)
+                        const localUsers = localStorage.getItem('appUsers');
+                        if (localUsers) {
+                            setAppUsers(JSON.parse(localUsers));
+                        } else {
+                            setAppUsers([
+                                { id: 1, name: "Admin Utama", email: "admin@pesantren.id", role: "Admin" },
+                                { id: 2, name: "Staf TU", email: "tu@pesantren.id", role: "Operator" }
+                            ]);
+                        }
+
+                        setIsLoading(false);
+                    } catch (error) {
+                        console.error("Error loading data:", error);
+                        setIsLoading(false);
+                    }
+                };
+                loadData();
             }, []);
+
+            // --- SAVE DATA TO LOCAL STORAGE ON CHANGE ---
+            useEffect(() => { if(!isLoading) localStorage.setItem('archives', JSON.stringify(archives)); }, [archives, isLoading]);
+            useEffect(() => { if(!isLoading) localStorage.setItem('types', JSON.stringify(types)); }, [types, isLoading]);
+            useEffect(() => { if(!isLoading) localStorage.setItem('units', JSON.stringify(units)); }, [units, isLoading]);
+            useEffect(() => { if(!isLoading) localStorage.setItem('appUsers', JSON.stringify(appUsers)); }, [appUsers, isLoading]);
 
             useEffect(() => {
                 if (isDarkMode) document.documentElement.classList.add('dark');
@@ -179,10 +200,48 @@
                 }
             };
 
-            // Handle Upload
+            // --- CRUD HANDLERS ---
+
+            // Archives
             const handleUpload = (newArchive) => {
                 setArchives([newArchive, ...archives]);
                 setShowUploadModal(false);
+            };
+            const handleDeleteArchive = (id) => {
+                if(confirm("Yakin ingin menghapus arsip ini?")) {
+                    setArchives(archives.filter(a => a.id !== id));
+                }
+            };
+
+            // Master Data (Types, Units, Users)
+            const openMasterModal = (type, item = null) => {
+                setMasterType(type);
+                setMasterItem(item); // If item is null, it's Add mode. If exists, Edit mode.
+                setShowMasterModal(true);
+            };
+
+            const handleSaveMaster = (data) => {
+                const isEdit = !!data.id;
+                const newItem = isEdit ? data : { ...data, id: Date.now() };
+
+                if (masterType === 'types') {
+                    if (isEdit) setTypes(types.map(t => t.id === newItem.id ? newItem : t));
+                    else setTypes([...types, newItem]);
+                } else if (masterType === 'units') {
+                    if (isEdit) setUnits(units.map(u => u.id === newItem.id ? newItem : u));
+                    else setUnits([...units, newItem]);
+                } else if (masterType === 'users') {
+                    if (isEdit) setAppUsers(appUsers.map(u => u.id === newItem.id ? newItem : u));
+                    else setAppUsers([...appUsers, newItem]);
+                }
+                setShowMasterModal(false);
+            };
+
+            const handleDeleteMaster = (type, id) => {
+                if(!confirm("Hapus data ini?")) return;
+                if (type === 'types') setTypes(types.filter(t => t.id !== id));
+                if (type === 'units') setUnits(units.filter(u => u.id !== id));
+                if (type === 'users') setAppUsers(appUsers.filter(u => u.id !== id));
             };
 
             // Handle View/Preview
@@ -198,7 +257,7 @@
                     const matchesSearch = item.name.toLowerCase().includes(searchTerm.toLowerCase());
                     const matchesType = filterType === 'Semua' || item.typeName === filterType;
                     const matchesStatus = filterStatus === 'Semua' || item.status === filterStatus;
-                    const matchesUnit = filterUnit === 'Semua' || item.unitName === filterUnit; // Logic Filter Unit
+                    const matchesUnit = filterUnit === 'Semua' || item.unitName === filterUnit;
                     return matchesSearch && matchesType && matchesStatus && matchesUnit;
                 });
             }, [archives, activeMenu, searchTerm, filterType, filterStatus, filterUnit]);
@@ -254,6 +313,16 @@
                         />
                     )}
 
+                    {/* --- MASTER DATA MODAL (NEW) --- */}
+                    {showMasterModal && (
+                        <MasterDataModal
+                            type={masterType}
+                            initialData={masterItem}
+                            onClose={() => setShowMasterModal(false)}
+                            onSave={handleSaveMaster}
+                        />
+                    )}
+
                     {/* --- PREVIEW MODAL --- */}
                     {showPreviewModal && previewItem && (
                         <PreviewModal 
@@ -264,6 +333,7 @@
 
                     {/* SIDEBAR */}
                     <aside className={`${isSidebarOpen ? 'w-64' : 'w-20'} bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 flex flex-col transition-all duration-300 z-20 md:flex hidden shadow-xl`}>
+                        {/* ... (Sidebar Header & Toggle Button Code Same as Before) ... */}
                         <div className="p-6 flex items-center justify-between">
                             <div className="flex items-center space-x-3 overflow-hidden">
                                 <div className="bg-blue-600 p-2 rounded-lg text-white shrink-0"><Icons.FolderOpen width={24} /></div>
@@ -276,7 +346,6 @@
                             </div>
                         </div>
 
-                        {/* DESKTOP COLLAPSE BUTTON */}
                         <div className="px-4 mb-2">
                              <button 
                                 onClick={() => setIsSidebarOpen(!isSidebarOpen)}
@@ -347,7 +416,9 @@
                                 </h2>
                             </div>
                             <div className="flex items-center space-x-4">
-                                <div className="text-xs text-slate-500 hidden md:block">Senin, 15 Desember 2025</div>
+                                <div className="text-xs text-slate-500 hidden md:block">
+                                    {new Date().toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+                                </div>
                             </div>
                         </header>
 
@@ -441,7 +512,7 @@
                                             </div>
                                         </div>
 
-                                        {/* Quick Actions / Info */}
+                                        {/* Quick Actions */}
                                         <div className="space-y-6">
                                             <div className="bg-gradient-to-br from-blue-600 to-indigo-700 rounded-2xl p-6 text-white shadow-lg">
                                                 <h3 className="text-lg font-bold mb-2">Upload Arsip Baru</h3>
@@ -449,20 +520,6 @@
                                                 <button onClick={() => { setActiveMenu('archives'); setShowUploadModal(true); }} className="w-full py-2 bg-white text-blue-600 rounded-lg font-bold text-sm hover:bg-blue-50 transition shadow-sm">
                                                     Ke Menu Upload
                                                 </button>
-                                            </div>
-                                            
-                                            <div className="bg-white dark:bg-slate-800 rounded-2xl p-6 border border-slate-200 dark:border-slate-700 shadow-sm">
-                                                <h3 className="font-bold text-slate-800 dark:text-white mb-4">Statistik Jenis</h3>
-                                                <div className="space-y-3">
-                                                    {types.slice(0, 4).map((t, idx) => (
-                                                        <div key={idx} className="flex justify-between items-center text-sm">
-                                                            <span className="text-slate-600 dark:text-slate-400">{t.name}</span>
-                                                            <span className="font-semibold text-slate-800 dark:text-white bg-slate-100 dark:bg-slate-700 px-2 py-0.5 rounded text-xs">
-                                                                {archives.filter(a => a.typeName === t.name).length}
-                                                            </span>
-                                                        </div>
-                                                    ))}
-                                                </div>
                                             </div>
                                         </div>
                                     </div>
@@ -484,7 +541,7 @@
                                         )}
                                      </div>
 
-                                     {/* TOOLBAR: Search + Filter + View Toggle */}
+                                     {/* TOOLBAR */}
                                      <div className="bg-white dark:bg-slate-800 p-4 rounded-xl border border-slate-200 dark:border-slate-700 flex flex-col md:flex-row gap-4">
                                          {/* Search */}
                                          <div className="flex-1 relative">
@@ -531,26 +588,13 @@
 
                                          {/* View Toggle */}
                                          <div className="flex bg-slate-50 dark:bg-slate-900 rounded-lg p-1 border border-slate-100 dark:border-slate-700">
-                                             <button 
-                                                onClick={() => setViewMode('card')}
-                                                className={`p-2 rounded-md transition ${viewMode === 'card' ? 'bg-white dark:bg-slate-700 shadow text-blue-600 dark:text-blue-400' : 'text-slate-400 hover:text-slate-600'}`}
-                                                title="Tampilan Kartu"
-                                             >
-                                                 <Icons.Grid width={18} />
-                                             </button>
-                                             <button 
-                                                onClick={() => setViewMode('list')}
-                                                className={`p-2 rounded-md transition ${viewMode === 'list' ? 'bg-white dark:bg-slate-700 shadow text-blue-600 dark:text-blue-400' : 'text-slate-400 hover:text-slate-600'}`}
-                                                title="Tampilan Tabel"
-                                             >
-                                                 <Icons.List width={18} />
-                                             </button>
+                                             <button onClick={() => setViewMode('card')} className={`p-2 rounded-md transition ${viewMode === 'card' ? 'bg-white dark:bg-slate-700 shadow text-blue-600 dark:text-blue-400' : 'text-slate-400 hover:text-slate-600'}`}><Icons.Grid width={18} /></button>
+                                             <button onClick={() => setViewMode('list')} className={`p-2 rounded-md transition ${viewMode === 'list' ? 'bg-white dark:bg-slate-700 shadow text-blue-600 dark:text-blue-400' : 'text-slate-400 hover:text-slate-600'}`}><Icons.List width={18} /></button>
                                          </div>
                                      </div>
 
-                                     {/* CONTENT: Card View vs Table View */}
+                                     {/* CARD VIEW */}
                                      {viewMode === 'card' ? (
-                                         /* CARD VIEW */
                                          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 animate-fade-in">
                                             {filteredArchives.length > 0 ? filteredArchives.map(item => (
                                                 <div key={item.id} className="group bg-white dark:bg-slate-800 p-6 rounded-2xl border border-slate-200 dark:border-slate-700 hover:shadow-xl hover:border-blue-300 dark:hover:border-blue-700 transition duration-300 flex flex-col">
@@ -579,16 +623,14 @@
                                                             <Icons.Download width={16} className="mr-2" /> Unduh
                                                          </button>
                                                          {activeMenu === 'archives' && (
-                                                             <button onClick={()=>alert("Hapus Arsip?")} className="px-3 py-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition">
+                                                             <button onClick={() => handleDeleteArchive(item.id)} className="px-3 py-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition">
                                                                 <Icons.Trash2 width={18} />
                                                              </button>
                                                          )}
                                                     </div>
                                                 </div>
                                             )) : (
-                                                <div className="col-span-full py-10 text-center text-slate-400">
-                                                    Tidak ada dokumen yang sesuai filter.
-                                                </div>
+                                                <div className="col-span-full py-10 text-center text-slate-400">Tidak ada dokumen yang sesuai filter.</div>
                                             )}
                                          </div>
                                      ) : (
@@ -636,7 +678,7 @@
                                                                             <Icons.Download width={16} />
                                                                         </button>
                                                                         {activeMenu === 'archives' && (
-                                                                            <button onClick={()=>alert("Hapus?")} className="p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition" title="Hapus">
+                                                                            <button onClick={() => handleDeleteArchive(item.id)} className="p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition" title="Hapus">
                                                                                 <Icons.Trash2 width={16} />
                                                                             </button>
                                                                         )}
@@ -644,9 +686,7 @@
                                                                  </td>
                                                              </tr>
                                                          )) : (
-                                                             <tr>
-                                                                 <td colSpan="6" className="text-center py-10 text-slate-400">Tidak ada dokumen yang sesuai filter.</td>
-                                                             </tr>
+                                                             <tr><td colSpan="6" className="text-center py-10 text-slate-400">Tidak ada dokumen.</td></tr>
                                                          )}
                                                      </tbody>
                                                  </table>
@@ -656,14 +696,21 @@
                                  </div>
                              )}
                              
-                             {/* READ ONLY DATA VIEWS (Units / Types / Users) */}
+                             {/* EDITABLE MASTER DATA VIEWS (Types / Units / Users) */}
                              {(activeMenu === 'types' || activeMenu === 'units' || activeMenu === 'users') && (
                                  <div className="max-w-4xl mx-auto space-y-6 animate-fade-in">
                                      <div className="flex justify-between items-center">
                                          <h2 className="text-2xl font-bold text-slate-800 dark:text-white">
                                              {activeMenu === 'types' ? 'Jenis Arsip' : activeMenu === 'units' ? 'Data Unit Kerja' : 'Manajemen User'}
                                          </h2>
-                                         <button onClick={()=>alert("Mode Demo: Tidak dapat menambah data.")} className="text-blue-600 text-sm font-bold hover:underline">+ Tambah Data</button>
+                                         <button onClick={() => openMasterModal(activeMenu)} className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-bold hover:bg-blue-700 flex items-center shadow-lg shadow-blue-500/30">
+                                             + Tambah Data
+                                         </button>
+                                     </div>
+
+                                     {/* DISCLAIMER LOCAL STORAGE */}
+                                     <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 p-3 rounded-lg text-sm text-yellow-800 dark:text-yellow-200 mb-4">
+                                         <strong>Catatan Admin:</strong> Perubahan yang Anda lakukan di sini akan disimpan di <em>Browser</em> ini. Untuk perubahan permanen ke publik, harap edit file JSON di GitHub.
                                      </div>
 
                                      <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 overflow-hidden shadow-sm">
@@ -690,8 +737,8 @@
                                                              </td>
                                                          )}
                                                          <td className="px-6 py-4 text-right">
-                                                             <button className="text-slate-400 hover:text-blue-600 mr-3"><Icons.Edit width={16} /></button>
-                                                             <button className="text-slate-400 hover:text-red-600"><Icons.Trash2 width={16} /></button>
+                                                             <button onClick={() => openMasterModal(activeMenu, item)} className="text-slate-400 hover:text-blue-600 mr-3"><Icons.Edit width={16} /></button>
+                                                             <button onClick={() => handleDeleteMaster(activeMenu, item.id)} className="text-slate-400 hover:text-red-600"><Icons.Trash2 width={16} /></button>
                                                          </td>
                                                      </tr>
                                                  ))}
@@ -733,10 +780,10 @@
             );
         }
 
-        // --- SUB-COMPONENTS ---
+        // --- MODAL COMPONENTS ---
 
         const UploadModal = ({ types, units, onClose, onSave }) => {
-            const [activeTab, setActiveTab] = useState('file'); // 'file' or 'link'
+            const [activeTab, setActiveTab] = useState('file'); 
             const [formData, setFormData] = useState({
                 name: '', typeName: '', unitName: '', status: 'Private', filename: ''
             });
@@ -763,13 +810,10 @@
                             <h3 className="text-xl font-bold text-slate-800 dark:text-white">Upload Arsip Baru</h3>
                             <button onClick={onClose} className="text-slate-400 hover:text-red-500"><Icons.X width={24} /></button>
                         </div>
-                        
-                        {/* Tabs */}
                         <div className="flex space-x-2 mb-6 bg-slate-100 dark:bg-slate-900 p-1 rounded-xl">
                             <button onClick={() => setActiveTab('file')} className={`flex-1 py-2 rounded-lg text-sm font-bold transition ${activeTab === 'file' ? 'bg-white dark:bg-slate-700 shadow text-blue-600 dark:text-white' : 'text-slate-500 dark:text-slate-400'}`}>Upload File</button>
                             <button onClick={() => setActiveTab('link')} className={`flex-1 py-2 rounded-lg text-sm font-bold transition ${activeTab === 'link' ? 'bg-white dark:bg-slate-700 shadow text-blue-600 dark:text-white' : 'text-slate-500 dark:text-slate-400'}`}>Link Dokumen</button>
                         </div>
-
                         <form onSubmit={handleSubmit} className="space-y-4">
                             <div>
                                 <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Nama Dokumen</label>
@@ -798,7 +842,6 @@
                                     <option value="Public">Public (Umum)</option>
                                 </select>
                             </div>
-                            
                             <div className="pt-2">
                                 <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
                                     {activeTab === 'file' ? 'Pilih File (Simulasi)' : 'URL Link Dokumen'}
@@ -820,8 +863,52 @@
                                     />
                                 )}
                             </div>
-
                             <button className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl mt-4">Simpan Arsip</button>
+                        </form>
+                    </div>
+                </div>
+            );
+        };
+
+        const MasterDataModal = ({ type, initialData, onClose, onSave }) => {
+            const [formData, setFormData] = useState(initialData || { name: '', email: '', role: 'Operator' });
+            
+            const title = type === 'types' ? 'Jenis Arsip' : type === 'units' ? 'Unit Kerja' : 'User';
+
+            const handleSubmit = (e) => {
+                e.preventDefault();
+                onSave(formData);
+            };
+
+            return (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-fade-in">
+                    <div className="bg-white dark:bg-slate-800 w-full max-w-md rounded-2xl p-6 shadow-2xl animate-slide-up border border-slate-200 dark:border-slate-700">
+                        <div className="flex justify-between items-center mb-6">
+                            <h3 className="text-xl font-bold text-slate-800 dark:text-white">{initialData ? 'Edit' : 'Tambah'} {title}</h3>
+                            <button onClick={onClose} className="text-slate-400 hover:text-red-500"><Icons.X width={24} /></button>
+                        </div>
+                        <form onSubmit={handleSubmit} className="space-y-4">
+                            <div>
+                                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Nama {title}</label>
+                                <input required type="text" className="w-full px-4 py-2 rounded-lg border dark:border-slate-600 bg-transparent dark:text-white outline-none" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} />
+                            </div>
+                            {type === 'users' && (
+                                <>
+                                    <div>
+                                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Email</label>
+                                        <input required type="email" className="w-full px-4 py-2 rounded-lg border dark:border-slate-600 bg-transparent dark:text-white outline-none" value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})} />
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Role</label>
+                                        <select className="w-full px-4 py-2 rounded-lg border dark:border-slate-600 bg-transparent dark:text-white outline-none" value={formData.role} onChange={e => setFormData({...formData, role: e.target.value})}>
+                                            <option>Admin</option>
+                                            <option>Operator</option>
+                                            <option>Viewer</option>
+                                        </select>
+                                    </div>
+                                </>
+                            )}
+                            <button className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl mt-2">Simpan Data</button>
                         </form>
                     </div>
                 </div>
@@ -852,7 +939,6 @@
                                     </a>
                                 </div>
                             ) : (
-                                // Simulation for File Preview
                                 <div className="w-full h-full border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 rounded-xl shadow-inner flex flex-col items-center justify-center text-center">
                                     {item.filename.endsWith('.pdf') ? (
                                         <div className="flex flex-col items-center">
