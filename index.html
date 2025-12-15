@@ -283,19 +283,6 @@
                                 if(cloudData.users) setAppUsers(cloudData.users);
                             }
                         } catch(e) { console.log('Google Fetch Error:', e); }
-
-                        const localTypes = localStorage.getItem('types');
-                        if (localTypes) setTypes(JSON.parse(localTypes));
-                        else fetch('./data/jenis.json').then(r=>r.ok&&r.json()).then(setTypes).catch(()=>{});
-
-                        const localUnits = localStorage.getItem('units');
-                        if (localUnits) setUnits(JSON.parse(localUnits));
-                        else fetch('./data/unit.json').then(r=>r.ok&&r.json()).then(setUnits).catch(()=>{});
-
-                        const localUsers = localStorage.getItem('appUsers');
-                        if (localUsers) setAppUsers(JSON.parse(localUsers));
-                        else setAppUsers([{ id: 1, username: "admin_sistem", password: "123", role: "Operator" }, { id: 2, username: "pengamat", password: "123", role: "Viewer" }]);
-
                         setIsLoading(false);
                     } catch (error) {
                         console.error("Error loading data:", error);
@@ -305,10 +292,6 @@
                 loadData();
             }, [webAppUrl]); 
 
-            useEffect(() => { if(!isLoading) localStorage.setItem('types', JSON.stringify(types)); }, [types, isLoading]);
-            useEffect(() => { if(!isLoading) localStorage.setItem('units', JSON.stringify(units)); }, [units, isLoading]);
-            useEffect(() => { if(!isLoading) localStorage.setItem('appUsers', JSON.stringify(appUsers)); }, [appUsers, isLoading]);
-
             useEffect(() => { if (isDarkMode) document.documentElement.classList.add('dark'); else document.documentElement.classList.remove('dark'); }, [isDarkMode]);
             useEffect(() => { setSearchTerm(''); setFilterType('Semua'); setFilterStatus('Semua'); setFilterUnit('Semua'); }, [activeMenu]);
 
@@ -316,8 +299,19 @@
             const openAlert = (title, message) => { setConfirmConfig({ isOpen: true, title, message, onConfirm: () => setConfirmConfig(prev => ({ ...prev, isOpen: false })), isDanger: false, isAlert: true }); };
 
             const handleLogin = (u, p) => {
-                if (u === 'mahaadmin' && p === 'mahaadmin') { setIsLoggedIn(true); setActiveMenu('dashboard'); }
-                else { const foundUser = appUsers.find(user => user.username === u && user.password === p); if (foundUser) { setIsLoggedIn(true); setActiveMenu('dashboard'); } else { openAlert('Login Gagal', 'Username atau Password salah. Silakan coba lagi.'); } }
+                let success = false;
+                if (u === 'mahaadmin' && p === 'mahaadmin') success = true;
+                else {
+                     const foundUser = appUsers.find(user => user.username === u && user.password === p);
+                     if (foundUser) success = true;
+                }
+                
+                if (success) {
+                    setIsLoggedIn(true);
+                    setActiveMenu('dashboard');
+                } else {
+                    openAlert('Login Gagal', 'Username atau Password salah. Silakan coba lagi.');
+                }
             };
 
             // --- SETTINGS ACTIONS ---
@@ -417,7 +411,7 @@
                     {showPreviewModal && previewItem && <PreviewModal item={previewItem} onClose={() => { setShowPreviewModal(false); setPreviewItem(null); }} />}
 
                     <aside className={`hidden md:flex ${isSidebarOpen ? 'w-64' : 'w-20'} bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 flex-col transition-all duration-300 z-20 shadow-xl`}>
-                        <div className="p-6 flex items-center justify-between"><div className="flex items-center space-x-3 overflow-hidden"><div className="bg-blue-600 p-2 rounded-lg text-white shrink-0"><Icons.FolderOpen width={24} /></div>{isSidebarOpen && <div className="whitespace-nowrap animate-fade-in"><h1 className="font-bold text-slate-800 dark:text-white leading-tight">E-Arsip</h1><p className="text-xs text-slate-500">Biro Kepesantrenan</p><span className="text-[10px] text-green-500 font-bold bg-green-50 px-2 py-0.5 rounded-full mt-1 inline-block">v2.1 (Live)</span></div>}</div></div>
+                        <div className="p-6 flex items-center justify-between"><div className="flex items-center space-x-3 overflow-hidden"><div className="bg-blue-600 p-2 rounded-lg text-white shrink-0"><Icons.FolderOpen width={24} /></div>{isSidebarOpen && <div className="whitespace-nowrap animate-fade-in"><h1 className="font-bold text-slate-800 dark:text-white leading-tight">E-Arsip</h1><p className="text-xs text-slate-500">Biro Kepesantrenan</p><span className="text-[10px] text-green-500 font-bold bg-green-50 px-2 py-0.5 rounded-full mt-1 inline-block">v3.0 (Full Cloud)</span></div>}</div></div>
                         <div className="px-4 mb-2"><button onClick={() => setIsSidebarOpen(!isSidebarOpen)} className="w-full py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg text-slate-500 flex items-center justify-center transition">{isSidebarOpen ? <Icons.ChevronLeft width={16}/> : <Icons.ChevronRight width={16}/>}</button></div>
                         <nav className="flex-1 px-4 space-y-1 overflow-y-auto py-2">
                             {isLoggedIn ? (
