@@ -72,7 +72,8 @@
         const { useState, useEffect, useMemo } = React;
 
         // --- KONFIGURASI BACKEND ---
-        const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbxL0Sg97MZTAlNthUUHuHsgvKl8rS3HPl_SheTH_CidffPh-Sr4VRT-B2HKgdFhBcW7/exec";
+        // Ganti URL ini dengan URL Web App Google Apps Script TERBARU Anda
+        const DEFAULT_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbxL0Sg97MZTAlNthUUHuHsgvKl8rS3HPl_SheTH_CidffPh-Sr4VRT-B2HKgdFhBcW7/exec";
 
         // --- ICONS (Lucide React equivalent) ---
         const Icons = {
@@ -103,10 +104,13 @@
             LinkIcon: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>,
             Globe: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/><path d="M2 12h20"/></svg>,
             AlertCircle: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" x2="12" y1="8" y2="12"/><line x1="12" x2="12.01" y1="16" y2="16"/></svg>,
-            HelpCircle: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></svg>
+            HelpCircle: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></svg>,
+            Server: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="20" height="8" x="2" y="2" rx="2" ry="2"/><rect width="20" height="8" x="2" y="14" rx="2" ry="2"/><line x1="6" x2="6.01" y1="6" y2="6"/><line x1="6" x2="6.01" y1="18" y2="18"/></svg>,
+            CheckCircle2: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/></svg>,
+            XCircle: (props) => <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="m15 9-6 6"/><path d="m9 9 6 6"/></svg>
         };
 
-        // --- GLOBAL COMPONENTS (Defined outside App to avoid ReferenceError) ---
+        // --- GLOBAL COMPONENTS ---
 
         const SidebarItem = ({ id, icon: IconName, label, activeMenu, setActiveMenu, isSidebarOpen }) => {
             const Icon = Icons[IconName];
@@ -176,7 +180,6 @@
                     openAlert('Data Belum Lengkap', 'Mohon lengkapi semua field yang wajib diisi.'); 
                     return; 
                 } 
-                // --- UPDATE: Validasi Ukuran File (Max 4MB) ---
                 if (activeTab === 'file' && formData.fileObj && formData.fileObj.size > 4 * 1024 * 1024) {
                     openAlert('File Terlalu Besar', 'Maksimal ukuran file adalah 4MB. Mohon kompres file atau gunakan link Google Drive.');
                     return;
@@ -198,17 +201,14 @@
         };
 
         const PreviewModal = ({ item, onClose }) => {
-            // --- UPDATE: Fix Preview URL for Google Drive ---
+            // --- FIX URL ---
             let src = item.fileUrl || `dokumen/${item.filename}`;
             if (src.includes('drive.google.com')) {
-                // Ensure it uses /preview instead of /view for embedding
                 if (src.includes('/view')) src = src.replace('/view', '/preview');
-                else if (src.includes('usp=sharing')) src = src.replace('usp=sharing', 'usp=sharing/preview'); // Fallback logic
-                // If it's a raw /file/d/ID/edit, convert to preview
+                else if (src.includes('usp=sharing')) src = src.replace('usp=sharing', 'usp=sharing/preview'); 
                 if (!src.includes('/preview')) src += '/preview';
             }
             
-            // Check for image extension
             const isImage = item.filename.match(/\.(jpeg|jpg|gif|png|webp)$/i);
 
             return (
@@ -218,21 +218,10 @@
 
         const StatCard = ({ title, value, icon: IconName, color }) => {
             const Icon = Icons[IconName];
-            const colors = { 
-                blue: "text-blue-600 bg-blue-100 dark:bg-blue-900/30", 
-                green: "text-green-600 bg-green-100 dark:bg-green-900/30", 
-                purple: "text-purple-600 bg-purple-100 dark:bg-purple-900/30", 
-                orange: "text-orange-600 bg-orange-100 dark:bg-orange-900/30" 
-            };
+            const colors = { blue: "text-blue-600 bg-blue-100 dark:bg-blue-900/30", green: "text-green-600 bg-green-100 dark:bg-green-900/30", purple: "text-purple-600 bg-purple-100 dark:bg-purple-900/30", orange: "text-orange-600 bg-orange-100 dark:bg-orange-900/30" };
             return (
                 <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 flex items-start justify-between hover:shadow-md transition duration-300">
-                    <div>
-                        <p className="text-sm font-medium text-slate-500 dark:text-slate-400 mb-1">{title}</p>
-                        <h3 className="text-3xl font-bold text-slate-800 dark:text-white">{value}</h3>
-                    </div>
-                    <div className={`p-3 rounded-xl ${colors[color]}`}>
-                        <Icon width={24} height={24} />
-                    </div>
+                    <div><p className="text-sm font-medium text-slate-500 dark:text-slate-400 mb-1">{title}</p><h3 className="text-3xl font-bold text-slate-800 dark:text-white">{value}</h3></div><div className={`p-3 rounded-xl ${colors[color]}`}><Icon width={24} height={24} /></div>
                 </div>
             );
         };
@@ -270,33 +259,27 @@
             const [types, setTypes] = useState([]);
             const [units, setUnits] = useState([]);
             const [appUsers, setAppUsers] = useState([]);
-
-            // ... (Rest of logic: useEffects, Handlers, etc.) ...
             
+            // Web App URL State
+            const [webAppUrl, setWebAppUrl] = useState(localStorage.getItem('webAppUrl') || DEFAULT_WEB_APP_URL);
+            const [tempUrl, setTempUrl] = useState(webAppUrl); 
+            const [connectionStatus, setConnectionStatus] = useState(null); 
+
             // --- LOAD DATA (Google + Local) ---
             useEffect(() => {
                 const loadData = async () => {
+                    setIsLoading(true);
                     try {
                         try {
-                            const res = await fetch(WEB_APP_URL, { redirect: 'follow' });
+                            const res = await fetch(webAppUrl, { redirect: 'follow' }); 
                             if(res.ok) {
                                 const cloudData = await res.json();
-                                if(Array.isArray(cloudData)) setArchives(cloudData);
+                                if(cloudData.archives) setArchives(cloudData.archives);
+                                if(cloudData.types) setTypes(cloudData.types);
+                                if(cloudData.units) setUnits(cloudData.units);
+                                if(cloudData.users) setAppUsers(cloudData.users);
                             }
                         } catch(e) { console.log('Google Fetch Error:', e); }
-
-                        const localTypes = localStorage.getItem('types');
-                        if (localTypes) setTypes(JSON.parse(localTypes));
-                        else fetch('./data/jenis.json').then(r=>r.ok&&r.json()).then(setTypes).catch(()=>{});
-
-                        const localUnits = localStorage.getItem('units');
-                        if (localUnits) setUnits(JSON.parse(localUnits));
-                        else fetch('./data/unit.json').then(r=>r.ok&&r.json()).then(setUnits).catch(()=>{});
-
-                        const localUsers = localStorage.getItem('appUsers');
-                        if (localUsers) setAppUsers(JSON.parse(localUsers));
-                        else setAppUsers([{ id: 1, username: "admin_sistem", password: "123", role: "Operator" }, { id: 2, username: "pengamat", password: "123", role: "Viewer" }]);
-
                         setIsLoading(false);
                     } catch (error) {
                         console.error("Error loading data:", error);
@@ -304,11 +287,7 @@
                     }
                 };
                 loadData();
-            }, []);
-
-            useEffect(() => { if(!isLoading) localStorage.setItem('types', JSON.stringify(types)); }, [types, isLoading]);
-            useEffect(() => { if(!isLoading) localStorage.setItem('units', JSON.stringify(units)); }, [units, isLoading]);
-            useEffect(() => { if(!isLoading) localStorage.setItem('appUsers', JSON.stringify(appUsers)); }, [appUsers, isLoading]);
+            }, [webAppUrl]); 
 
             useEffect(() => { if (isDarkMode) document.documentElement.classList.add('dark'); else document.documentElement.classList.remove('dark'); }, [isDarkMode]);
             useEffect(() => { setSearchTerm(''); setFilterType('Semua'); setFilterStatus('Semua'); setFilterUnit('Semua'); }, [activeMenu]);
@@ -321,25 +300,89 @@
                 else { const foundUser = appUsers.find(user => user.username === u && user.password === p); if (foundUser) { setIsLoggedIn(true); setActiveMenu('dashboard'); } else { openAlert('Login Gagal', 'Username atau Password salah. Silakan coba lagi.'); } }
             };
 
+            // --- SETTINGS ACTIONS ---
+            const handleTestConnection = async () => {
+                setIsProcessing(true); setConnectionStatus(null);
+                try {
+                    const res = await fetch(tempUrl, { redirect: 'follow' });
+                    if(res.ok) {
+                        const data = await res.json();
+                        if(data.archives) { setConnectionStatus({ type: 'success', msg: 'Koneksi Berhasil! Data ditemukan.' }); } 
+                        else { setConnectionStatus({ type: 'error', msg: 'Terhubung, tapi format data salah.' }); }
+                    } else { setConnectionStatus({ type: 'error', msg: 'Gagal menghubungi server (HTTP Error).' }); }
+                } catch(e) { setConnectionStatus({ type: 'error', msg: 'Error: ' + e.message }); }
+                setIsProcessing(false);
+            };
+
+            const handleSaveConfig = () => {
+                localStorage.setItem('webAppUrl', tempUrl); setWebAppUrl(tempUrl);
+                openAlert('Berhasil', 'URL Server berhasil diperbarui. Data akan dimuat ulang.');
+            };
+
+            // --- CRUD ACTIONS (ALL TO GOOGLE) ---
+
             const handleUpload = async (data) => {
                 setIsProcessing(true); setShowUploadModal(false);
-                let payload = { action: "create", ...data };
+                let payload = { action: "create", table: "archives", ...data };
+                
                 if (data.fileType === 'file' && data.fileObj) {
                     const reader = new FileReader(); reader.readAsDataURL(data.fileObj);
                     reader.onload = async () => {
                         payload.fileData = reader.result; payload.fileName = data.filename; delete payload.fileObj;
-                        try { await fetch(WEB_APP_URL, { method: 'POST', body: JSON.stringify(payload), redirect: 'follow' }); const res = await fetch(WEB_APP_URL, { redirect: 'follow' }); if(res.ok) setArchives(await res.json()); openAlert('Berhasil', 'Arsip berhasil diunggah!'); } catch(e) { openAlert('Gagal', 'Gagal upload: ' + e.message + '. Pastikan Google Script di-deploy "Anyone"'); } setIsProcessing(false);
+                        try { 
+                            await fetch(webAppUrl, { method: 'POST', body: JSON.stringify(payload), redirect: 'follow' }); 
+                            const res = await fetch(webAppUrl, { redirect: 'follow' }); const d = await res.json(); setArchives(d.archives); 
+                            openAlert('Berhasil', 'Arsip berhasil diunggah!'); 
+                        } catch(e) { openAlert('Gagal', 'Gagal upload: ' + e.message); } setIsProcessing(false);
                     }; reader.onerror = () => { setIsProcessing(false); openAlert('Error', 'Error membaca file'); };
                 } else {
-                    try { await fetch(WEB_APP_URL, { method: 'POST', body: JSON.stringify(payload), redirect: 'follow' }); const res = await fetch(WEB_APP_URL, { redirect: 'follow' }); if(res.ok) setArchives(await res.json()); openAlert('Berhasil', 'Arsip berhasil disimpan!'); } catch(e) { openAlert('Gagal', 'Gagal simpan: ' + e.message); } setIsProcessing(false);
+                    try { 
+                        await fetch(webAppUrl, { method: 'POST', body: JSON.stringify(payload), redirect: 'follow' }); 
+                        const res = await fetch(webAppUrl, { redirect: 'follow' }); const d = await res.json(); setArchives(d.archives);
+                        openAlert('Berhasil', 'Arsip berhasil disimpan!'); 
+                    } catch(e) { openAlert('Gagal', 'Gagal simpan: ' + e.message); } setIsProcessing(false);
                 }
             };
 
-            const handleDeleteArchive = (id) => { openConfirm({ title: "Hapus Arsip", message: "Yakin ingin menghapus arsip ini secara permanen?", onConfirm: async () => { setIsProcessing(true); try { await fetch(WEB_APP_URL, { method: 'POST', body: JSON.stringify({ action: "delete", id: id }), redirect: 'follow' }); setArchives(archives.filter(a => a.id !== id)); openAlert('Dihapus', 'Arsip berhasil dihapus.'); } catch(e) { openAlert('Gagal', 'Gagal hapus: ' + e.message); } setIsProcessing(false); }, isDanger: true }); };
+            const handleDeleteArchive = (id) => { 
+                openConfirm({ title: "Hapus Arsip", message: "Yakin ingin menghapus arsip ini secara permanen?", onConfirm: async () => { 
+                    setIsProcessing(true); 
+                    try { 
+                        await fetch(webAppUrl, { method: 'POST', body: JSON.stringify({ action: "delete", table: "archives", id: id }), redirect: 'follow' }); 
+                        setArchives(archives.filter(a => a.id !== id)); 
+                        openAlert('Dihapus', 'Arsip berhasil dihapus.'); 
+                    } catch(e) { openAlert('Gagal', 'Gagal hapus: ' + e.message); } setIsProcessing(false); 
+                }, isDanger: true }); 
+            };
+
             const handleDownload = (item) => { openConfirm({ title: "Unduh Dokumen", message: `Apakah Anda ingin mengunduh berkas "${item.name}"?`, onConfirm: () => { window.open(item.fileUrl || item.filename, '_blank'); } }); };
+            
             const openMasterModal = (type, item = null) => { setMasterType(type); setMasterItem(item); setShowMasterModal(true); };
-            const handleSaveMaster = (data) => { const isEdit = !!data.id; const newItem = isEdit ? data : { ...data, id: Date.now() }; if (masterType === 'types') isEdit ? setTypes(types.map(t => t.id === newItem.id ? newItem : t)) : setTypes([...types, newItem]); else if (masterType === 'units') isEdit ? setUnits(units.map(u => u.id === newItem.id ? newItem : u)) : setUnits([...units, newItem]); else if (masterType === 'users') isEdit ? setAppUsers(appUsers.map(u => u.id === newItem.id ? newItem : u)) : setAppUsers([...appUsers, newItem]); setShowMasterModal(false); };
-            const handleDeleteMaster = (type, id) => { openConfirm({ title: "Hapus Data", message: "Hapus data ini dari browser?", onConfirm: () => { if (type === 'types') setTypes(types.filter(t => t.id !== id)); else if (type === 'units') setUnits(units.filter(u => u.id !== id)); else if (type === 'users') setAppUsers(appUsers.filter(u => u.id !== id)); }, isDanger: true }); };
+            
+            const handleSaveMaster = async (data) => { 
+                setIsProcessing(true); setShowMasterModal(false);
+                try {
+                    await fetch(webAppUrl, { method: 'POST', body: JSON.stringify({ action: "create", table: masterType, ...data }), redirect: 'follow' });
+                    // Refresh all data to be safe
+                    const res = await fetch(webAppUrl, { redirect: 'follow' }); const d = await res.json();
+                    if(d.types) setTypes(d.types); if(d.units) setUnits(d.units); if(d.users) setAppUsers(d.users);
+                    openAlert('Berhasil', 'Data berhasil disimpan!');
+                } catch(e) { openAlert('Gagal', 'Gagal menyimpan data: ' + e.message); }
+                setIsProcessing(false);
+            };
+            
+            const handleDeleteMaster = (type, id) => { 
+                openConfirm({ title: "Hapus Data", message: "Yakin ingin menghapus data ini dari server?", onConfirm: async () => { 
+                    setIsProcessing(true);
+                    try {
+                        await fetch(webAppUrl, { method: 'POST', body: JSON.stringify({ action: "delete", table: type, id: id }), redirect: 'follow' });
+                        if (type === 'types') setTypes(types.filter(t => t.id !== id)); else if (type === 'units') setUnits(units.filter(u => u.id !== id)); else if (type === 'users') setAppUsers(appUsers.filter(u => u.id !== id));
+                         openAlert('Berhasil', 'Data berhasil dihapus!');
+                    } catch(e) { openAlert('Gagal', 'Gagal menghapus data: ' + e.message); }
+                    setIsProcessing(false);
+                }, isDanger: true }); 
+            };
+            
             const handlePreview = (item) => { setPreviewItem(item); setShowPreviewModal(true); };
 
             const filteredArchives = useMemo(() => { return archives.filter(item => { if (activeMenu === 'public' && item.status !== 'Public') return false; const matchesSearch = item.name.toLowerCase().includes(searchTerm.toLowerCase()); const matchesType = filterType === 'Semua' || item.typeName === filterType; const matchesStatus = filterStatus === 'Semua' || item.status === filterStatus; const matchesUnit = filterUnit === 'Semua' || item.unitName === filterUnit; return matchesSearch && matchesType && matchesStatus && matchesUnit; }); }, [archives, activeMenu, searchTerm, filterType, filterStatus, filterUnit]);
@@ -367,7 +410,6 @@
                     <main className="flex-1 flex flex-col h-screen overflow-hidden relative bg-slate-50 dark:bg-slate-900 pb-20 md:pb-0">
                          <header className="h-16 bg-white/80 dark:bg-slate-900/80 backdrop-blur border-b border-slate-200 dark:border-slate-800 flex items-center justify-between px-6 sticky top-0 z-10"><div className="flex items-center"><h2 className="text-lg font-bold text-slate-800 dark:text-white capitalize flex items-center"><span className="text-slate-400 mr-2 font-light">/</span> {activeMenu.replace('_', ' ')}</h2></div><div className="flex items-center space-x-4"><div className="text-xs text-slate-500 hidden md:block">{new Date().toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</div><button onClick={() => setIsDarkMode(!isDarkMode)} className="md:hidden p-2 text-slate-500 dark:text-slate-400">{isDarkMode ? <Icons.Sun width={20} /> : <Icons.Moon width={20} />}</button></div></header>
                         <div className="flex-1 overflow-y-auto p-6 md:p-8">
-                            {/* ... Content Logic ... (Kept inside App return above) */}
                             {activeMenu === 'login' && !isLoggedIn && (
                                 <div className="flex flex-col items-center justify-center h-full max-w-md mx-auto -mt-16"><div className="text-center mb-8"><div className="inline-block p-4 bg-blue-100 dark:bg-blue-900/30 rounded-2xl text-blue-600 mb-4"><Icons.ShieldCheck width={48} height={48} /></div><h2 className="text-3xl font-bold text-slate-800 dark:text-white">Admin Login</h2><p className="text-slate-500 mt-2">Masuk untuk mengelola arsip pesantren</p></div><div className="bg-white dark:bg-slate-800 p-8 rounded-2xl shadow-xl w-full border border-slate-200 dark:border-slate-700"><form onSubmit={(e) => {e.preventDefault(); handleLogin(e.target.u.value, e.target.p.value)}}><div className="space-y-5"><div><label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Username</label><input name="u" className="w-full px-4 py-3 rounded-xl border border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none transition" placeholder="admin" /></div><div><label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Password</label><input name="p" type="password" className="w-full px-4 py-3 rounded-xl border border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none transition" placeholder="admin" /></div><button className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow-lg shadow-blue-500/30 transition transform hover:-translate-y-1">Masuk Dashboard</button></div></form></div></div>
                             )}
@@ -383,7 +425,7 @@
                             )}
 
                             {activeMenu === 'settings' && (
-                                <div className="max-w-2xl mx-auto space-y-6 animate-fade-in"><h2 className="text-2xl font-bold text-slate-800 dark:text-white">Pengaturan Akun</h2><div className="bg-white dark:bg-slate-800 p-8 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm"><div className="flex items-center space-x-4 mb-8"><div className="w-16 h-16 rounded-full bg-blue-600 text-white flex items-center justify-center text-2xl font-bold">A</div><div><h3 className="font-bold text-lg dark:text-white">Administrator</h3><p className="text-slate-500">Super Admin Access</p></div></div><form className="space-y-4" onSubmit={(e)=>e.preventDefault()}><div><label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-1">Ganti Password</label><input type="password" placeholder="Password Lama" className="w-full px-4 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-transparent dark:text-white mb-2" /><input type="password" placeholder="Password Baru" className="w-full px-4 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-transparent dark:text-white" /></div><div className="pt-4"><button className="bg-blue-600 text-white px-6 py-2 rounded-lg font-bold hover:bg-blue-700 transition">Simpan Perubahan</button></div></form></div></div>
+                                <div className="max-w-3xl mx-auto space-y-8 animate-fade-in"><div className="flex justify-between items-center"><h2 className="text-2xl font-bold text-slate-800 dark:text-white">Pengaturan</h2></div><div className="bg-white dark:bg-slate-800 p-8 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm"><div className="flex items-center space-x-4 mb-6"><div className="w-12 h-12 rounded-full bg-indigo-600 text-white flex items-center justify-center"><Icons.Server width={24} /></div><div><h3 className="font-bold text-lg dark:text-white">Konfigurasi Server</h3><p className="text-slate-500 text-sm">Hubungkan aplikasi dengan Google Apps Script</p></div></div><div className="space-y-4"><div><label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Web App URL</label><input type="url" value={tempUrl} onChange={(e) => setTempUrl(e.target.value)} placeholder="https://script.google.com/macros/s/..." className="w-full px-4 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-900 dark:text-white focus:ring-2 focus:ring-indigo-500 outline-none transition" /></div>{connectionStatus && (<div className={`flex items-center p-3 rounded-lg text-sm ${connectionStatus.type === 'success' ? 'bg-green-50 text-green-700 border border-green-200' : 'bg-red-50 text-red-700 border border-red-200'}`}>{connectionStatus.type === 'success' ? <Icons.CheckCircle2 width={18} className="mr-2"/> : <Icons.XCircle width={18} className="mr-2"/>}{connectionStatus.msg}</div>)}<div className="flex gap-3 pt-2"><button onClick={handleTestConnection} className="px-4 py-2 bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-white rounded-lg font-semibold hover:bg-slate-300 dark:hover:bg-slate-600 transition flex items-center">Test Koneksi</button><button onClick={handleSaveConfig} className="px-6 py-2 bg-indigo-600 text-white rounded-lg font-semibold hover:bg-indigo-700 transition">Simpan URL</button></div></div></div><div className="bg-white dark:bg-slate-800 p-8 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm"><div className="flex items-center space-x-4 mb-6"><div className="w-12 h-12 rounded-full bg-blue-600 text-white flex items-center justify-center"><div className="font-bold text-xl">A</div></div><div><h3 className="font-bold text-lg dark:text-white">Akun Administrator</h3><p className="text-slate-500 text-sm">Ubah kata sandi akun saat ini</p></div></div><form className="space-y-4" onSubmit={(e)=>e.preventDefault()}><div><label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Ganti Password</label><input type="password" placeholder="Password Lama" className="w-full px-4 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-transparent dark:text-white mb-2" /><input type="password" placeholder="Password Baru" className="w-full px-4 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-transparent dark:text-white" /></div><div className="pt-2"><button className="px-6 py-2 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition">Simpan Perubahan</button></div></form></div></div>
                             )}
                         </div>
                     </main>
